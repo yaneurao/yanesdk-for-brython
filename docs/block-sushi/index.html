@@ -1,0 +1,1236 @@
+﻿<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Brython Games</title><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.10/brython.min.js"></script><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.10/brython_stdlib.js"></script></head><body onload="brython()"><canvas id="canvas" width="400" height="400" style="cursor:none"></canvas><script type="text/python">
+    # ==============================================================================
+#                     Yaneurao Game SDK for Brython V1.10
+# ==============================================================================
+
+#  required : Python version >= 3.10
+
+from dataclasses import dataclass
+from browser import document, html, window
+from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog
+# PythonのMathライブラリを使うまでもないものは、JavaScriptのMathを使う。
+from javascript import Math
+
+from enum import IntEnum
+from typing import Callable, Generator, cast
+import traceback
+
+# ------------------------------------------------------------------------------
+#                              数学関係のツール
+# ------------------------------------------------------------------------------
+
+# 数学関係のツール
+class MathTools:
+
+    # 円周率(定数)
+    PI:float = Math.PI
+
+    # xを区間[min,max]の範囲に収める
+    @staticmethod
+    def clamp(x:int | float, min:int | float, max: int | float)-> int | float:
+        if x < min:
+            x = min
+        if x > max:
+            x = max
+        return x
+
+    # 区間[min,max)の整数の乱数を返す。
+    # maxが指定されなかった場合は、区間[0,min)の整数の乱数を返す。
+    @staticmethod
+    def randint(min:int,max:int | None=None)->int:
+        if max:
+            return Math.floor(Math.random() * (max - min)) + min
+        return Math.floor(Math.random() * min)
+
+    # sin関数。単位は角度(360を指定すると2π[rad])
+    @staticmethod
+    def sin_deg(x:int | float)->float:
+        return Math.sin(Math.PI*2 * x / 360)
+
+    # sin関数。単位はrad。
+    @staticmethod
+    def sin(x:float)->float:
+        return Math.sin(x)
+
+    # cos関数。単位は角度(360を指定すると2π[rad])
+    @staticmethod
+    def cos_deg(x:int | float)->float:
+        return Math.cos(Math.PI*2 * x / 360)
+
+    # cos関数。単位はrad。
+    @staticmethod
+    def cos(x:int | float)->float:
+        return Math.cos(x)
+
+    # ベクトルの方向を0-360で返す。(右方向が0、上方向(スクリーン座標での上なのでVector2D(0,-1)が上方向であることに注意) が90、..)
+    @staticmethod
+    def atan_deg(v:"Vector2D")->float:
+        # JavaScriptのatan2は 区間[-π,+π](-180°～180°)の範囲で返ってくるので360足して 360で割ったあまりを考えることで補整。
+        return (360 - Math.atan2(v.y, v.x) * 180 / Math.PI) % 360
+
+# ------------------------------------------------------------------------------
+#                              図形関連
+# ------------------------------------------------------------------------------
+
+# 2次元ベクトル
+# このclassはimmutable
+class Vector2D:
+    def __init__(self, x:int | float = 0, y:int | float = 0):
+        self._x = x
+        self._y = y
+
+    # readonly
+    @property
+    def x(self)->int | float:
+        return self._x
+
+    # readonly
+    @property
+    def y(self)->int | float:
+        return self._y
+
+    # operator ==
+    def __eq__(self, other:"Vector2D")->bool:
+        return self._x == other._x and self._y == other._y
+
+    # operator !=
+    def __ne__(self, other:"Vector2D")->bool:
+        return not (self._x == other._x and self._y == other._y)
+
+    # operator +
+    # z : Vector2D
+    def __add__(self,z:"Vector2D") -> "Vector2D":
+        return Vector2D(self.x + z.x , self.y + z.y)
+
+    # operator +=
+    # def __iadd__(self,z:"Vector2D")-> "Vector2D":
+    #     self.x += z.x
+    #     self.y += z.y
+    #     return self
+    # → immutableなので実装せず。isub、imulについても同様。
+
+    # operator -
+    # z : Vector2D
+    def __sub__(self, z:"Vector2D") -> "Vector2D":
+        return Vector2D(self.x - z.x , self.y - z.y)
+
+    # operator *
+    # z : Vector2D
+    def __mul__(self, z:float | int) -> "Vector2D":
+        return Vector2D(self.x * z , self.y * z)
+
+    # operator //
+    def __floordiv__(self,z:float | int)-> "Vector2D":
+        return Vector2D( self.x // z , self.y // z )
+
+    # 文字列化
+    def __str__(self):
+        return f"({self.x},{self.y})"
+
+    # Vectorを矩形の範囲に収まるようにclampする。
+    def clamp(self,rect:"Rect")->"Vector2D":
+        return Vector2D(
+            MathTools.clamp(self.x, rect.p.x ,rect.p.x + rect.s.x - 1),
+            MathTools.clamp(self.y, rect.p.y ,rect.p.y + rect.s.y - 1)
+        )
+
+    # 単位ベクトルを返す。
+    # kが指定されていれば、そのk倍したものを返す。
+    def unit(self,k:float = 1.0)->"Vector2D":
+        r = Math.sqrt(self.x**2 + self.y**2)
+        # ゼロ除算回避
+        if r == 0.0:
+            return Vector2D(0,0)
+        return Vector2D(self.x * k / r , self.y * k / r)
+
+    # このベクトルを座標として見た時に、矩形の範囲内にああるか
+    def is_in_rect(self, rect:"Rect") -> bool:
+        return  rect.p.x <= self.x < rect.p.x + rect.s.x \
+            and rect.p.y <= self.y < rect.p.y + rect.s.y
+
+    # ベクトルのノルム(大きさ)を返す。
+    def norm(self)->float:
+        return Math.sqrt(self.x**2 + self.y**2)
+
+# 矩形領域
+class Rect:
+    # 矩形領域。
+    # p : 左上の座標
+    # s : 矩形のサイズ。(width, height)
+    def __init__(self,p:Vector2D,s:Vector2D):
+        # 左上の座標
+        self.p   = p
+        # 矩形のサイズ
+        self.s   = s
+    def __str__(self):
+        return f"p={self.p}, s={self.s}"
+
+
+# ------------------------------------------------------------------------------
+#                              キー入力
+# ------------------------------------------------------------------------------
+
+# キーコード
+class KEY(IntEnum):
+    LEFT  = 37
+    RIGHT = 39
+    UP    = 38
+    DOWN  = 40
+    SPACE = 32
+    ENTER = 13
+
+# キー入力
+class KeyInput:
+    def __init__(self):
+
+        # キー入力は、DOMの仕様上、document全体を対象とするしかない。(?)
+        self.element = document
+        
+        # 現在押されているキー
+        # set() でも良いが、keyCodeは最大でも256までしかないのでそういうテーブルを用意する。
+        self._keys      = [False]*256
+        # 前回のupdate()の時に押されていたキー
+        self._last_keys = [False]*256
+
+        # キーイベントのハンドラの設定
+        self.element.addEventListener("keydown", self._key_push)
+        self.element.addEventListener("keyup"  , self._key_up)
+
+        # ↑のイベントをremoveした時にTrueになるフラグ
+        self._event_removed = False
+
+    # キーが押された時のイベント
+    def _key_push(self, e):
+        self._keys[e.keyCode] = True
+
+        # スクロールバーとか動いてしまうの嫌なので抑制
+        e.preventDefault()
+        e.stopPropagation()
+
+    # キーを離した時のイベント
+    def _key_up(self, e):
+        self._keys[e.keyCode] = False
+        # スクロールバーとか動いてしまうの嫌なので抑制
+        e.preventDefault()
+        e.stopPropagation()
+
+    # キーが押されているかを判定して返す。
+    def is_key_pressed(self, key:KEY) -> bool:
+        return self._keys[key]
+
+    # 何かキーが押されているか？
+    def is_any_key_pressed(self) -> bool:
+        return any(self._keys)
+
+    # 明示的にeventをremoveする。
+    # キー入力がこのクラスに食われてF5キー等が利かなくて困る時に用いる。
+    def remove_event(self):
+        if not self._event_removed:
+            self.element.removeEventListener("keydown", self._key_push)
+            self.element.removeEventListener("keyup"  , self._key_up)
+            self._event_removed = True
+
+    # コンストラクタでhookしたEventを戻す
+    def __del__(self):
+        self.remove_event()
+
+# ------------------------------------------------------------------------------
+#                              Touchイベント
+# ------------------------------------------------------------------------------
+
+# タッチ情報
+class TouchInfo:
+    def __init__(self, pos:"Vector2D" , id:int):
+        # タッチされている座標
+        self.p = pos
+        # そのid(タッチ(指)が移動した場合、同一idであることが保証されている)
+        self.id = id
+
+# タッチイベント(スマホ等)の入力用
+class TouchInput:
+    # canvas_id_name : 対象としたいcanvasのid名。Noneを指定すると、document全体。
+    def __init__(self , id_name:str="canvas"):
+
+        self.element = document[id_name] if id_name else document
+        self.element.addEventListener("touchstart", self._touch_handler)
+        self.element.addEventListener("touchmove" , self._touch_handler)
+        self.element.addEventListener("touchend"  , self._touch_handler)    
+
+        # 現在押されているリスト
+        self.touches:list[TouchInfo] = []
+        # 前回の押されていたリスト
+        self.last_touches:list[TouchInfo] =[]
+
+    def _touch_handler(self, e):
+        self.touches:list[TouchInfo] = []
+
+        touch_list = e.touches
+        for touch in touch_list:
+            self.touches.append(TouchInfo(Vector2D(touch.clientX,touch.clientY),touch.identifier))
+
+        # スクロールの防止
+        e.preventDefault();
+
+    # 明示的にeventをremoveする。
+    # キー入力がこのクラスに食われてF5キー等が利かなくて困る時に用いる。
+    def remove_event(self):
+        self.element.removeEventListener("touchstart", self._touch_handler)
+        self.element.removeEventListener("touchmove" , self._touch_handler)
+        self.element.removeEventListener("touchend"  , self._touch_handler)    
+
+    # 現在押されている箇所の一覧を返す。
+    def get_info(self)->list[TouchInfo]:
+        return self.touches
+
+    # 前回から新規に押されたところだけを返す。
+    def get_touchstart_info(self)->list[TouchInfo]:
+        touches:list[TouchInfo] = []        
+        for touch in self.touches:
+
+            # touch.id が self.last_touches のなかに見つからなければ新規に押されたということなので
+            # touchesに追加する。
+
+            found = False
+            for last_touch in self.last_touches:
+                if touch.id == last_touch.id:
+                    found = True
+                    break
+
+            if not found:
+                touches.append(touch)
+
+        # 保存しておく
+        self.last_touches = self.touches
+        return touches
+
+    # コンストラクタでhookしたEventを戻す
+    def __del__(self):
+        self.remove_event()
+
+# マウス情報
+class MouseInfo:
+    def __init__(self, pos:"Vector2D" , left_button:bool , middle_button:bool , right_button:bool):
+
+        # 座標(x,y) 対象とするelementの左上を原点とする。
+        self.p = pos
+
+        # 各ボタンの状態
+        self.left_button   = left_button
+        self.middle_button = middle_button
+        self.right_button  = right_button
+
+    def clone(self)->"MouseInfo":
+        return MouseInfo(self.p, self.left_button, self.middle_button, self.right_button)
+
+    def __str__(self)->str:
+        return f"{self.p} , L={self.left_button}, M={self.middle_button}, R={self.right_button}"
+
+# マウス入力
+class MouseInput:
+    # canvas_id_name : 対象としたいcanvasのid名。Noneを指定すると、document全体。
+    def __init__(self , id_name:str="canvas"):
+        self.element = document[id_name] if id_name else document
+        self.element.addEventListener("mousemove"   , self._mouse_move  )
+        self.element.addEventListener("mousedown"   , self._mouse_updown)
+        self.element.addEventListener("mouseup"     , self._mouse_updown)
+        self.element.addEventListener("contextmenu" , self._contextmenu )
+
+        self.info      = MouseInfo(Vector2D(-99999,-99999), False,False,False)
+
+    # マウスの移動ハンドラ
+    def _mouse_move(self, e):
+        self.info.p = Vector2D(e.offsetX, e.offsetY)
+
+    # マウスのボタン押し下げハンドラ
+    def _mouse_updown(self, e):
+        self.info.left_button   = bool(e.buttons & 1)
+        self.info.right_button  = bool(e.buttons & 2)
+        self.info.middle_button = bool(e.buttons & 4)
+
+    def _contextmenu(self, e):
+        # コンテキストメニューの出現をキャンセル
+        e.preventDefault();
+
+    # マウス状態を返す。
+    def get_info(self)->MouseInfo:
+        # このあと書き換えるのでcloneして返す。
+        return self.info.clone()
+        
+    # 明示的にeventをremoveする。
+    # キー入力がこのクラスに食われてF5キー等が利かなくて困る時に用いる。
+    def remove_event(self):
+        self.element.removeEventListener("mousemove"   , self._mouse_move  )
+        self.element.removeEventListener("mousedown"   , self._mouse_updown)
+        self.element.removeEventListener("mouseup"     , self._mouse_updown)
+        self.element.removeEventListener("contextmenu" , self._contextmenu )
+
+    # コンストラクタでhookしたEventを戻す
+    def __del__(self):
+        self.remove_event()
+
+# 仮想キー(VirtualKeyInputを使う時に使えるかも)
+class VKEY(IntEnum):
+    SPACE = 0
+    ENTER = 1
+    LEFT  = 2
+    RIGHT = 3
+    DOWN  = 4
+    UP    = 5
+
+# 仮想キー入力
+# スペースキー、マウスクリック(右 or 左)、画面タッチ(スマホ)のいずれでもスペースキーが押されたとみなす、みたいな感じのことができる。
+# 使い方)
+#  register_handler()でハンドラを登録するか、configure_1key_game()のようなconfigureを自動でやってくれる関数を呼び出す。
+#  以降は、1 frameごとにupdate()を呼び出し、そのあと is_key_pressed() / is_key_pushed() で、
+#  ある仮想キーが押されているか/押し下げられたかを判定できる。
+class VirtualKeyInput:
+
+    # id_name : キー入力の対象とするHTML element。document全体にするならNoneを指定。
+    def __init__(self, id_name : str = "canvas"):
+        self.key_input   = KeyInput  ()
+        self.touch_input = TouchInput(id_name)
+        self.mouse_input = MouseInput(id_name)
+
+        # update()が呼び出された時に呼び出されるハンドラ。
+        # 仮想キーごとにハンドラを用意すると、touch_inputに対するハンドラが書きにくくて良くない設計。
+        self.handler:Callable[[],None] | None = None
+
+        # 前回と今回、それぞれのキーが押されていたかの情報。update()呼び出しごとに更新される。
+        self._key_pressed_previous:list[bool] = []
+        self. key_pressed_current :list[bool] = [False]*8 # 最大 8key
+
+        # update()のあと、(有効矩形内で)タッチされていた箇所。なければNone。configure_6keys_8directions_game()などを用いる時のみ有効。
+        self.touch_pos:Vector2D | None = None
+
+    # ワンキーゲーム用のお手軽設定
+    # 仮想キー VKEY.SPACE として以下のように設定する。
+    #   key   : Space、Enter
+    #   mouse : 左・右ボタン
+    #   touch : 画面タッチ
+    def configure_1key_game(self):
+        def handler():
+            mouse = self.mouse_input.get_info()
+            self.key_pressed_current[VKEY.SPACE] = \
+                self.key_input.is_key_pressed(KEY.SPACE) or self.key_input.is_key_pressed(KEY.ENTER) or \
+                mouse.left_button or mouse.right_button or \
+                len(self.touch_input.get_info()) > 0 
+
+        self.register_handler(handler)
+
+    # 左右キーのみのゲーム用のお手軽設定
+    # ※　あくまで書き方のサンプル。この仕様が気にいらなければ、この関数をコピペして書き換えてregister_handler()を呼び出すと良いと思う。
+    # 仮想キー VKEY.LEFT として以下のように設定する。
+    #   key   : 左カーソル
+    #   mouse : 左ボタン
+    #   touch : 画面左半分のタッチ
+    # 仮想キー VKEY.RIGHT として以下のように設定する。
+    #   key   : 右カーソル
+    #   mouse : 右ボタン
+    #   touch : 画面右半分のタッチ
+    # 仮想キー VKEY.SPACE , VKEY.ENTER として以下のように設定する。
+    #   key   : SPACE , Enter
+    #
+    # r0 : タッチされた時に 仮想キー0としてみなす矩形領域(デフォルトでは400px × 400px のcanvasの左半分)
+    # r1 : タッチされた時に 仮想キー1としてみなす矩形領域(デフォルトでは400px × 400px のcanvasの右半分)
+    def configure_4keys_2directions_game(self,r0:Rect=Rect(Vector2D(0,0),Vector2D(200,400)),r1:Rect=Rect(Vector2D(200,0),Vector2D(200,400))):
+
+        def handler():
+            mouse = self.mouse_input.get_info()
+            self.key_pressed_current[VKEY.LEFT] = self.key_input.is_key_pressed(KEY.LEFT) or\
+                    mouse.left_button or \
+                    (len(self.touch_input.get_info()) > 0 and self.touch_input.get_info()[0].p.is_in_rect(r0))
+
+            self.key_pressed_current[VKEY.RIGHT] = self.key_input.is_key_pressed(KEY.RIGHT) or\
+                    mouse.right_button or \
+                    (len(self.touch_input.get_info()) > 0 and self.touch_input.get_info()[0].p.is_in_rect(r1))
+
+            self.key_pressed_current[VKEY.SPACE] = self.key_input.is_key_pressed(KEY.SPACE)
+            self.key_pressed_current[VKEY.ENTER] = self.key_input.is_key_pressed(KEY.ENTER)
+
+        self.register_handler(handler)
+
+    # 上下左右キーのみのゲーム用のお手軽設定。斜め入力は無しの場合について。(ありの場合はconfigure_6keys_8directions_game()を呼び出すこと。)
+    # ※　あくまで書き方のサンプル。この仕様が気にいらなければ、この関数をコピペして書き換えてregister_handler()を呼び出すと良いと思う。
+    # 仮想キー VKEY.LEFTとして以下のように設定する。
+    #   key   : 左カーソル
+    #   mouse , touch : 指定した矩形の左らへんのタッチ
+    # 仮想キー VKEY.RIGHTとして以下のように設定する。
+    #   key   : 右カーソル
+    #   mouse , touch : 指定した矩形の右らへんのタッチ
+    # 仮想キー VKEY.DOWNとして以下のように設定する。
+    #   key   : 下カーソル
+    #   mouse , touch : 指定した矩形の下らへんのタッチ
+    # 仮想キー VKEY.UPとして以下のように設定する。
+    #   key   : 上カーソル
+    #   mouse , touch : 指定した矩形の上らへんのタッチ
+    # 仮想キー VKEY.SPACE として以下のように設定する。
+    #   key   : Space
+    #   mouse : 左クリック
+    #   touch : 任意箇所
+    # 仮想キー VKEY.ENTER として以下のように設定する。
+    #   key   : Enter
+    # 
+    # r              : マウスクリック、タッチの有効矩形。このなかだけ有効。
+    # タッチされた箇所は、self.touch_posに反映される。
+    def configure_6keys_4directions_game(self, r:Rect=Rect(Vector2D(0,0),Vector2D(200,200))):
+        self.register_handler(lambda : self._6keys_handler(r, 45))
+
+    # 上下左右キーのみのゲーム用のお手軽設定。斜め入力もありうる場合について。(なしの場合はconfigure_6directios_game()を呼び出すこと。)
+    # その他は、configure_6keys_4directios_gameと同じ。
+    def configure_6keys_8directions_game(self, r:Rect=Rect(Vector2D(0,0),Vector2D(200,200))):
+        self.register_handler(lambda : self._6keys_handler(r, 45))
+
+    # ↑で使うhandler
+    def _6keys_handler(self, r:Rect, tolerance:float)->None:
+        mouse = self.mouse_input.get_info()
+
+        # キー入力
+        self.key_pressed_current[VKEY.SPACE] = self.key_input.is_key_pressed(KEY.SPACE) or \
+                mouse.left_button or \
+                len(self.touch_input.get_info()) > 0
+                # 仮想キー VEKY.SPACEに、これらを入れておかないと is_any_key_pressed()で開始待ちをしている時に画面タッチしてもゲームが始まらない。
+
+        self.key_pressed_current[VKEY.ENTER] = self.key_input.is_key_pressed(KEY.ENTER)
+
+        self.key_pressed_current[VKEY.LEFT ] = self.key_input.is_key_pressed(KEY.LEFT )
+        self.key_pressed_current[VKEY.RIGHT] = self.key_input.is_key_pressed(KEY.RIGHT)
+        self.key_pressed_current[VKEY.DOWN ] = self.key_input.is_key_pressed(KEY.DOWN )
+        self.key_pressed_current[VKEY.UP   ] = self.key_input.is_key_pressed(KEY.UP   )
+                
+        # マウスか、タッチで矩形内のものを探す。マウスは、左クリックされていなければ無視。
+        p:Vector2D | None = None
+        if mouse.left_button and mouse.p.is_in_rect(r):
+            p = mouse.p
+        else:
+            # マウスは矩形内になかったのでタッチを調べる。
+            touch_list = self.touch_input.get_info()
+            for touch in touch_list:
+                if touch.p.is_in_rect(r):
+                    # 矩形内にあった。
+                    p = touch.p
+                    break
+
+        # タッチされていた。
+        if p:
+            # rect中心からどの方角なのか
+            d = p - (r.p + r.s//2)
+            if d.norm() <= 5:
+                # 矩形中心から小さすぎる距離なのでニュートラル(レバーが中央のままで、入力なし)扱い。
+                p = None
+            else:
+                # ベクトルの角度を0-360で返す。
+                deg = MathTools.atan_deg(d)
+
+                # 4方向を考える。例えば、右上なら 45°方向。右下なら -45°(270+45)方向。
+                # 
+                # このとき、上としてみなしたいのは、90°±45°。
+                # ゆえに、45° <= deg <= 180°-45° には、"上"方向の成分の入力があると考えられる。
+                # 以下、同様。ゆえに以下の式でtolerance = 45。
+
+                # 8方向を考える場合。
+                # 
+                # このとき、右上としてみなしたいのは、45°±22.5°。
+                # 　　　　　左上としてみなしたいのは、90+45±22.5°。
+                # ゆえに、22.5° <= deg <= 180°-22.5° には、"上"方向の成分の入力があると考えられる。
+                # 以下、同様。ゆえに以下の式でtolerance = 22.5。
+
+                if  90 + tolerance <= deg <= 270 - tolerance:       # 左方向
+                    self.key_pressed_current[VKEY.LEFT ] = True
+                if deg <= 90 - tolerance or 270 + tolerance <= deg: # 右方向
+                    self.key_pressed_current[VKEY.RIGHT] = True
+                if 180 + tolerance <= deg <= 360 - tolerance:       # 下方向
+                    self.key_pressed_current[VKEY.DOWN ] = True
+                if   0 + tolerance <= deg <= 180 - tolerance:       # 上方向
+                    self.key_pressed_current[VKEY.UP   ] = True
+                
+        self.touch_pos = p
+
+
+    # update()の時に呼び出されるハンドラを登録する。
+    # このハンドラは、
+    #  1. self.key_pressed_currentを更新しなければならない。
+    #  2. 登録する時に self.key_pressed_currentを仮想キーの数だけ確保しなくてはならない。
+    def register_handler(self,handler:Callable[[],None]):
+        self.handler = handler
+
+    # 仮想キーが押されたかを返す。
+    # key : 仮想キー番号(0から register_handler()を呼び出した回数 - 1 まで)
+    def is_key_pressed(self,key:int):
+        # 登録されているハンドラを呼び出すだけ。
+        return self.key_pressed_current[key]
+
+    # いずれかの仮想キーが押されていたらTrueを返す。
+    def is_any_key_pressed(self):
+        return any(self.key_pressed_current)
+
+    # 仮想キーが(前回のupdate呼び出し時は押されていなくて)新規に押されたのかを返す。
+    # そのframeでまずupdate()を一度呼び出して、そのあと、各仮想キーに対してこのメソッドを呼び出していく。
+    # 例)
+    #  keyinput.update()
+    #  if keyinput.is_key_pushed(0):
+    #    ...
+    def is_key_pushed(self,key:int):
+
+        if len(self._key_pressed_previous) != len(self.key_pressed_current):
+            # update()を呼び忘れている。
+            raise Exception("please call VirtualKeyInput.update()")
+
+        # 前回押されていなくて、今回押されている。
+        return not self._key_pressed_previous[key] and self.key_pressed_current[key]
+
+    # is_key_pushed()を使いたいなら、この関数を1 frameごとに呼び出すこと。
+    def update(self):
+        # 前回の情報を退避させる。
+        self._key_pressed_previous = self.key_pressed_current.copy()
+        
+        # ハンドラを呼び出す。
+        # (このハンドラが self.key_pressed_currentを更新してくれる。)
+        if self.handler:
+            self.handler()
+
+    # 明示的にeventをremoveする。
+    # キー入力がこのクラスに食われてF5キー等が利かなくて困る時に用いる。
+    def remove_event(self):
+        self.key_input  .remove_event()
+        self.touch_input.remove_event()
+        self.mouse_input.remove_event()
+        
+    # コンストラクタでhookしたEventを戻す
+    def __del__(self):
+        self.remove_event()
+
+# ------------------------------------------------------------------------------
+#                              音声・Multimedia
+# ------------------------------------------------------------------------------
+
+# 音声用class
+class Audio:
+    # sound_filename : 音声ファイル("audios"フォルダに配置してあるものとする)
+    def __init__(self, audio_filename:str):
+        path = "audios\\" + audio_filename
+        audio = document.createElement("audio")
+        audio["src"] = path
+        self.audio = audio
+
+        # unlock()が呼び出されたかのフラグ
+        self.unlocked = False
+
+    # 再生する。
+    #    sound = Sound("se.wav")
+    #    document.body.bind("mousemove", lambda ev : sound.play() )
+    # のようにユーザーがアクションを行った時のイベントハンドラでしか再生されない。
+    # 現在、ほとんどのブラウザがそういうポリシーに変更されてしまったようだ。
+    # なので、以下のUnlockAudio()と組み合わせて使う。
+    def play(self):
+        if not self.unlocked:
+            return
+        self.audio.currentTime = 0
+        self.audio.play()
+
+    # 停止する。
+    def stop(self):
+        if not self.unlocked:
+            return
+        self.audio.stop()
+
+    # 使える状態にする。ユーザーのタップイベントなどでまとめてunlockしておくと良い。
+    # cf. JavaScript で音声再生まとめ (marmooo's blog) : https://marmooo.blogspot.com/2021/06/javascript.html
+    def unlock(self):
+        self.unlocked = True
+        self.audio.volume = 0
+        self.audio.play()
+        self.audio.pause()
+        self.currentTime = 0
+        self.audio.volume = 1
+
+# audioを管理してくれる。
+class AudioLoader:
+    # hookするevent
+    # keydownは、KeyInputのハンドラが
+    #    e.preventDefault()
+    #    e.stopPropagation()
+    # としているが、前者は、FORMのsubmitみたいな動作をキャンセルするだけだし、後者は親要素への伝播を停止するだけなので、
+    # ここでのkeydownが呼び出されなくなるわけではないのでセーフ。
+    event_names:list[str] = ["touchstart", "keydown" , "mousedown"]
+
+    # 使いたいaudioファイルの一覧を渡す。
+    def __init__(self , audio_filenames:list[str]):
+
+        # ↓ここに読み込まれる。
+        self.audios:list[Audio] = []
+        for filename in audio_filenames:
+            self.audios.append(Audio(filename))
+
+        self._unlocked = False
+        self._add_events()
+
+    def _add_events(self):
+        for event_name in AudioLoader.event_names:
+            document.addEventListener(event_name, self._event_handler )
+        
+    def _remove_events(self):
+        # 一度だけ呼び出されればOKなのでイベントハンドラの登録を解除しておく。
+        for event_name in AudioLoader.event_names:
+            document.removeEventListener(event_name, self._event_handler )
+
+    def _event_handler(self, evt):
+        self._unlock_audios()
+        self._remove_events()
+
+    # Audioをunlockして良いタイミングで呼び出す。(ユーザーのキーイベントなど)
+    def _unlock_audios(self):
+        if self._unlocked:
+            return # タイミングのずれで二度呼び出されることがある
+
+        for audio in self.audios:
+            audio.unlock()
+
+        self._unlocked = True
+
+# ------------------------------------------------------------------------------
+#                              画面・画像
+# ------------------------------------------------------------------------------
+
+# 画像用class
+class Image:
+    # image_filename : 画像ファイル名("images"フォルダに配置してあるものとする)
+    # ここで読み込んだ画像は、Canvas.draw_image()などで描画できる。
+    def __init__(self, image_filename:str):
+        self.image = window.Image.new()
+        # self.image.src = image_filename と書くとwarningが出る。
+        self.image["src"] = "images\\" + image_filename
+
+    # 画像サイズ
+    # self.size = Vector2D(self.image.naturalWidth , self.image.naturalHeight)
+    # →　このタイミングだと画像読み込みが完了していないため、(0,0)になってしまう。
+    def get_size(self)->"Vector2D":
+        return Vector2D(self.image.naturalWidth , self.image.naturalHeight)
+
+# 描画用canvas
+class Canvas:
+    # canvas_id_name : HTML5のcanvasにつけたid名。defaultでは"canvas"
+    def __init__(self, canvas_id_name:str = "canvas"):
+        # 描画するcanvasのcontextの取得。
+        self.canvas = document[canvas_id_name]
+        self.ctx = self.canvas.getContext("2d")
+
+        # canvasの幅と高さ
+        self.width :int = self.canvas.width
+        self.height:int = self.canvas.height
+
+        # canvasのRect
+        self.rect = Rect(
+            Vector2D(0,0) ,
+            Vector2D(self.width, self.height)
+        )
+
+    # 画面のクリア
+    def clear(self, color:str="black"):
+        # canvas丸ごと塗りつぶし
+        self.draw_rect(self.rect.p , self.rect.s, color)
+
+    # 矩形の描画(塗りつぶし)
+    # p  : 左上の座標 ( left  ,   top )
+    # s  : 矩形サイズ ( width , height)
+    def draw_rect(self, p:Vector2D, s:Vector2D, color:str="black"):
+        self.ctx.fillStyle = color
+        self.ctx.fillRect(p.x, p.y, s.x, s.y)
+
+    # 矩形の描画(指定した座標に矩形の中央が来るように描画)
+    # colorは make_color()を使ってRGBで指定することもできる。
+    # ("red","blue"のような文字列と"#808080"のような16進数RGB文字列が使える)
+    def draw_rect_center(self, p:Vector2D, s:Vector2D, color:str="black"):
+        self.draw_rect(p - s//2 , s , color)
+
+    # 矩形の線だけの描画
+    # p  : 左上の座標 ( left  ,   top )
+    # s  : 矩形サイズ ( width , height)
+    def draw_rectline(self, p:Vector2D, s: Vector2D, color:str="black"):
+        self.ctx.strokeStyle = color
+        self.ctx.strokeRect(p.x, p.y, s.x, s.y);        
+
+    # Imageクラスの描画
+    def draw_image(self,image:Image,p:Vector2D):
+        # 読み込みが完了していなければ(失敗しているなどでも) width == 0 なので
+        # その状態なら、描画をskipする。
+        if image.get_size().x == 0:
+            return 
+        self.ctx.drawImage(image.image, p.x, p.y)
+
+    # Imageクラスを描画(指定した座標に画像の中央が来るように描画)
+    def draw_image_center(self, image:Image, p:Vector2D):
+        self.draw_image(image , p - image.get_size() // 2)
+
+    # 文字をcanvasに描画
+    # p : 文字列の左上の座標
+    # colorは make_color()を使ってRGBで指定することもできる。
+    # ("red","blue"のような文字列と"#808080"のような16進数RGB文字列が使える)
+    def draw_text(self, text:str, p:Vector2D, font="32px serif",color="white"):
+        self.ctx.font = font
+        self.ctx.fillStyle = color
+        self.ctx.textBaseline = "top"
+        self.ctx.fillText(text, p.x, p.y)
+
+    # 文字をcanvasに描画
+    # draw_textの中央揃え版。
+    # p : 文字列の中央にしたい座標。
+    def draw_text_center(self, text:str, p:Vector2D, font="32px serif",color="white"):
+        self.ctx.font = font
+        self.ctx.fillStyle = color
+        self.ctx.textBaseline = "top"
+
+        # 描画される幅を計測する
+        textWidth:int = self.ctx.measureText(text).width
+
+        # その幅の分だけ左側から表示。
+        self.ctx.fillText(text, p.x - textWidth//2, p.y)
+
+    # RGB値からCSSで使う文字列を作る。
+    # r,g,b : 0-255の範囲
+    # r=g=b=128なら"#808080"という文字が返る。
+    @staticmethod
+    def make_color(r:int,g:int,b:int)->str:
+        # 2文字の16進数にする。
+        def toHex(x:int):
+            return ('0' + format(x,"x"))[-2:]
+        return f"#{toHex(r)}{toHex(g)}{toHex(b)}"
+
+    # message dialogを出す。
+    @staticmethod
+    def message_dialog(text:str):
+        Dialog(text , ok_cancel=True)
+
+# ------------------------------------------------------------------------------
+#                              Timerなど
+# ------------------------------------------------------------------------------
+
+# ゲーム用の描画ループ
+class GameTimer:
+    def __init__(self , onDrawFunction:Callable[[],None] | None = None, fps:int=15):
+
+        self._game_loop    :Callable[[],None] | None = None
+
+        # 描画関数が設定されていれば、即座にstartさせる
+        if onDrawFunction:
+            self.start(onDrawFunction,fps = fps)
+
+    # 描画する関数を登録する。
+    # fps : 1秒間のフレーム数
+    # onDrawFunction : 1フレームごとに呼び出す描画用の関数
+    def start(self, onDrawFunction:Callable[[],None],fps:int | float=15):
+
+        # 以前にstart()が呼び出されていたのなら、それを停止させる。
+        self.stop()
+
+        # ゲーム用のループ。例外が出たらそのメッセージとトレースバックを表示
+        def gameloop():
+            try:
+                onDrawFunction()
+            except Exception:
+                InfoDialog("Exception",traceback.format_exc())
+                self.stop()
+
+        # 描画する関数onDrawを定期的に呼び出す
+        self._game_loop = window.setInterval(gameloop, 1000 / fps)  # 15 FPS
+
+    # start()で開始させたゲームを終了させる。
+    # from_start : start()から呼び出された時にTrueになる。
+    def stop(self):
+        if self._game_loop:
+            window.clearInterval(self._game_loop)
+            self._game_loop = None
+
+# ------------------------------------------------------------------------------
+#                              GameObject
+# ------------------------------------------------------------------------------
+
+# GameObjectのOnDraw()で渡すパラメーターの基底class。これから派生させる。
+class GameContext:
+    pass
+
+# ゲームに出てくる物体
+class GameObject:
+    # p : Vector2D , 座標
+    def __init__(self):
+
+        # オブジェクトの削除マーク
+        # (これがTrueだと、次のフレームで削除される)
+        self.deleted = False
+
+    # 描画に対して呼び出される。派生クラス側でoverrideする。
+    # contextは、描画に必要なためのクラスを指定する。
+    def onDraw(self,context:GameContext):
+        pass
+
+# GameObjectを追加したり削除したりする。
+class GameObjectManager(GameObject):
+    def __init__(self):
+        # ゲーム上の物体
+        self.objects:list[GameObject] = []
+
+    # このclassをiterableにしておく。
+    # def __iter__(self):
+    #     # yield from self.objects
+    #     # →　途中でappend()される可能性を考慮して以下のように書く。     
+    #     i = 0
+    #     while i < len(self.objects):
+    #         yield self.objects[i]
+    #         i += 1
+    # →　わかりにくいので素直に self.objects 使ったほうがいいと思う。
+
+    # GameObjectを追加する。
+    def append(self,object:GameObject):
+        self.objects.append(object)
+
+    # このクラスの持つ objects(GameObjectのlist)に対してonDraw()を呼び出してやる。
+    # onDraw()のなかで このクラスのappend()が呼び出されてもうまく動くようになっている。
+    def onDraw(self,context:GameContext):
+
+        # ゲームオブジェクトの描画
+        # onDrawのなかで追加されることがあるのでappendに対して安全にしておく必要がある。
+        # また、このframeで追加されたものに対してonDraw()を呼び出すことを保証したい。
+        # なので通常のforループでは書けない。
+
+        i = 0
+        while i < len(self.objects):
+            self.objects[i].onDraw(context)
+            i += 1
+
+        # 備考) listに対してforで回している時のappend、Pythonでは現状問題がないようだ。
+        #       しかし今後、変わる恐れがあるのでこの仕様に依存した書き方をしない。
+        #       https://dev.classmethod.jp/articles/python-delete-element-of-list/
+
+        # deleteフラグが立っているものはremoveする。
+        self.objects = [obj for obj in self.objects if not obj.deleted]
+
+# ==============================================================================
+#                         Game Main
+# ==============================================================================
+
+class AUDIO(IntEnum):
+    SUSHI  = 0 , # 寿司に当たった時のサウンド
+    # GAME_OVER = 1 , # ゲームオーバーになった時のサウンド
+
+# ↑のに対応する、読み込むオーディオファイル名(これはaudios/ に配置する)
+AudioFileList = [
+    "chime.mp3"   ,
+    ]
+
+ImageFileList = [
+    "sushi_akami-s.png"   ,
+    "sushi_ebi-s.png"     ,
+    "sushi_hamachi-s.png" ,
+    "sushi_harasu-s.png"  ,
+    "sushi_kinmedai-s.png",
+    "sushi_tamago-s.png"
+    ]
+
+# 画像loader
+class ImageLoader:
+    def __init__(self):
+        self.images:list[Image] = []
+        for filename in ImageFileList:
+            self.images.append(Image(filename))
+
+# ゲームオブジェクトを表す定数
+class GameObjectType(IntEnum):
+    SUSHI           = 0 # 寿司
+    BALL            = 1 # ボール
+    BALL_TRAIL      = 2 # ボールの軌跡
+    SUSHI_GENERATOR = 3 # 寿司の生成器
+    PLAYER          = 4 # プレイヤー
+
+# このゲームで使うGameObject
+class MyGameObject(GameObject):
+    def __init__(self, p:"Vector2D", type:GameObjectType):
+        super().__init__()
+
+        self.p    = p
+        self.type = type
+
+    def onDraw(self, app:"TheApp"): # type:ignore
+        pass
+
+# このゲームで使うGameObject
+class SushiGenerator(MyGameObject):
+    def __init__(self):
+        super().__init__(Vector2D(), GameObjectType.SUSHI_GENERATOR)
+
+        # カウンター
+        self.count = 0
+
+        # 次に出現させる寿司(0..5)
+        self.sushi_no = 0
+
+    def onDraw(self, app:"TheApp"):
+        scene = cast(GameMainScene, app.scene)
+        
+        # 1秒ごとに寿司オブジェクト一つ追加。
+        if self.count % 15 == 0:
+            # 順番に出現させる
+            p        = Vector2D(-30 , 60) # 画面左上からでてくる。
+            scene.objects.append(Sushi(p, self.sushi_no))
+            self.sushi_no = (self.sushi_no + 1) % 6
+
+        self.count += 1
+
+# 画面上に表示する寿司
+class Sushi(MyGameObject):
+    # sushi_no = 0..5 寿司の番号
+    def __init__(self, p:"Vector2D", sushi_no:int):
+        super().__init__(p, GameObjectType.SUSHI)
+        self.sushi_no  = sushi_no
+
+        # 寿司の移動方向(この変数を参照するごとに新しいベクトルを返す)
+        self.sushi_mover = self.sushi_mover_iter()
+
+    # 寿司の移動方向を返す。
+    # 呼び出されるごとに次の移動ベクトルを返すようになっている。
+    def sushi_mover_iter(self)->Generator[Vector2D, None, None]:
+        for _ in range(10): yield Vector2D( 5,0) # 左上(画面外)から画面内へ
+        while True:
+            for _ in range(70): yield Vector2D( 5,0) # 右移動
+            for _ in range(20): yield Vector2D( 0,3) # 下移動
+            for _ in range(70): yield Vector2D(-5,0) # 左移動
+            for _ in range(20): yield Vector2D( 5,3) # 下移動
+
+    def onDraw(self, app:"TheApp"):
+        canvas    = app.canvas
+        images    = app.image_loader.images
+        math      = app.math
+        scene     = cast(GameMainScene, app.scene)
+
+        # 寿司の移動方向。これは iterableで 1つずつ取り出される。
+        v = next(self.sushi_mover)
+
+        # 寿司の移動
+        self.p = self.p + v
+
+        # 画面外に行ったものも次フレームで削除
+        if self.p.y >= canvas.height:
+            self.deleted = True
+
+        # ballとの接触判定
+        # ballの座標
+        ball = scene.ball
+        if (ball.p - self.p).norm() <= 30:
+            # 反射する。寿司の中心座標から、ボールの座標方向に跳ね返るものとする。
+            ball.v = (ball.p - self.p + Vector2D(math.randint(-2,2),math.randint(-2,2))).unit(10)
+            # この寿司、自爆する。
+            self.deleted = True
+            # スコア加算
+            scene.score += 100
+            # サウンドの再生
+            app.audio_loader.audios[AUDIO.SUSHI].play()
+
+        canvas.draw_image_center(images[self.sushi_no], self.p)
+
+
+# 画面上に表示するボール
+class Ball(MyGameObject):
+    # p : 座標
+    # v : 速度
+    def __init__(self, p:"Vector2D", v:"Vector2D"):
+        super().__init__(p, GameObjectType.BALL)
+        self.v         = v
+        self.ball_size = Vector2D(20,20)
+
+    def onDraw(self, app:"TheApp"):
+        canvas  = app.canvas
+        scene   = cast(GameMainScene, app.scene)
+
+        # 移動
+        self.p += self.v
+
+        # 壁に反射
+        if self.p.x >= canvas.width:
+            self.v = Vector2D(-abs(self.v.x) ,  self.v.y)
+        if self.p.x < 0:
+            self.v = Vector2D( abs(self.v.x) ,  self.v.y)
+        if self.p.y < 0:
+            self.v = Vector2D( self.v.x      , abs(self.v.y))
+
+        # プレイヤーの座標
+        player = scene.player.p
+
+        # プレイヤー(pad)に反射する
+        if player.x - 25 < self.p.x <= player.x + 50 and \
+           player.y - 10 < self.p.y <= player.y + 10 :
+            # 反射する X方向は、Padの当たった部分に応じる。
+            # -25..25の間
+            vx     = (self.p.x - player.x) * 10 / 25
+            self.v = Vector2D(vx, -abs(self.v.y))
+
+        canvas.draw_rect_center(self.p, self.ball_size,"blue")
+
+        # 痕跡オブジェクトの生成
+        # 現在のボールの座標に出現。
+        scene.objects.append(BallTrail(self.p))
+
+
+# ボールの軌跡
+class BallTrail(MyGameObject):
+    def __init__(self, p:"Vector2D"):
+        super().__init__(p, GameObjectType.BALL_TRAIL)
+
+        self.ball_size = Vector2D(20,20)
+
+        # 5フレーム程度で消滅すればいいと思う。
+        # そのためのcounter
+        self.counter = 0
+
+    def onDraw(self, app:"TheApp"):
+        canvas = app.canvas
+
+        # 徐々に薄くなる
+        b = 128*(5 - self.counter) // 5
+
+        color = canvas.make_color(0, 0, b)
+        canvas.draw_rect_center(self.p, self.ball_size,color)
+
+        self.counter += 1
+        if self.counter >= 5:
+            self.deleted = True
+            return
+
+# プレイヤー
+class Player(MyGameObject):
+    def __init__(self, p:"Vector2D"):
+        super().__init__(p, GameObjectType.PLAYER)
+
+    def onDraw(self, app:"TheApp"):
+        # alias for app
+        canvas    = app.canvas
+        keyinput  = app.keyinput
+        math      = app.math
+
+        # キーに応じた移動
+        vx = 0
+        keyinput.update()
+        if   keyinput.is_key_pressed(VKEY.LEFT ):
+            vx = -20
+        elif keyinput.is_key_pressed(VKEY.RIGHT):
+            vx = +20
+        
+        # プレイヤーの移動
+        self.p = Vector2D(math.clamp(self.p.x + vx , 0, canvas.width) , self.p.y )
+
+        # プレイヤーの描画
+        canvas.draw_rect_center(self.p , Vector2D(50,20),"green")
+
+
+# Scene基底class
+class Scene:
+    def onDraw(self, app:"TheApp"):
+        pass
+
+# ゲーム開始時のキー説明のScene
+class GameOpeningScene(Scene):
+    def onDraw(self, app:"TheApp"):
+        canvas = app.canvas
+        # ゲーム説明の表示
+        canvas.clear()
+        canvas.draw_text_center("Instruction",Vector2D(200,130))
+        canvas.draw_text_center("Right/Left Cursor Key to move",Vector2D(200,200),"25px serif")
+        canvas.draw_text_center("Mouse Right and Left Button",Vector2D(200,240),"20px serif")
+        canvas.draw_text_center(" or Touch Right/Left side is also available",Vector2D(200,270),"20px serif")
+
+        # 何かキーが押されたらゲーム開始
+        app.keyinput.update()
+        if app.keyinput.is_any_key_pressed():
+            app.scene = GameMainScene()
+
+# ゲームオーバー時のScene
+class GameOverScene(Scene):
+    def __init__(self):
+        # 時間経過監視用のカウンター
+        self._counter = 0
+
+    def onDraw(self, app:"TheApp"):
+        # 画面更新は不要
+        self._counter += 1
+        if self._counter > 3 * 15: # 3秒経過
+            # オープニングのSceneへ
+            app.scene = GameOpeningScene()
+
+# ゲーム本体
+class GameMainScene(Scene):
+    def __init__(self):
+
+        self.score = 0  # ゲームスコア
+
+        # ゲーム上の物体
+        self.objects = GameObjectManager()
+
+        # プレイヤー
+        # 外部から参照したいのでメンバとしても持たせておく。
+        self.player = Player(Vector2D(200,380))
+        self.objects.append(self.player)
+
+        # 寿司の生成器を追加
+        self.objects.append(SushiGenerator())
+
+        self.ball = Ball(Vector2D(200,360) , Vector2D(1,-2).unit(10))
+
+        # ゲームのスコア
+        self.score = 0
+
+    def onDraw(self,app:"TheApp"):
+
+        # alias for app
+        canvas    = app.canvas
+
+        # canvas丸ごと塗りつぶし
+        color  = canvas.make_color(0,0,40)
+        canvas.clear(color)
+
+        # ゲームオブジェクトの描画
+        self.objects.onDraw(app)
+
+        # ballの描画
+        self.ball.onDraw(app)
+
+        # スコアの加算、描画
+        self.score += 1
+        app.canvas.draw_text(f"Score {self.score}",Vector2D(5,5))
+
+        # 画面下までボールが移動したらゲームオーバー
+        if self.ball.p.y >= canvas.height:
+            # ゲームオーバーになっていたら、それを表示。
+            canvas.draw_text("Game Over",Vector2D(50,170),"60px serif","red")
+
+            # ゲームオーバー画面に移動
+            app.scene = GameOverScene()
+
+# ==============================================================================
+#                         The App
+# ==============================================================================
+
+class TheApp(GameContext):
+    def __init__(self):
+
+        # Sceneクラスのインスタンスを生成
+        self.scene:Scene  = GameOpeningScene()
+
+        # キー入力用(左右)
+        self.keyinput     = VirtualKeyInput()
+        self.keyinput.configure_4keys_2directions_game()
+
+        # 描画用スクリーン
+        self.canvas       = Canvas("canvas")
+
+        # 画像loader
+        self.image_loader = ImageLoader()
+
+        # 数学関連のツール
+        self.math         = MathTools()
+
+        # 音声ファイル
+        self.audio_loader = AudioLoader(AudioFileList)
+
+        # 描画のloop
+        self.gametimer    = GameTimer(lambda : self.scene.onDraw(self) , 15)  # 15FPSでスタート
+
+# the singleton instance of The App
+TheApp()
+</script></body></html>

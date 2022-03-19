@@ -20,7 +20,7 @@
 実際に本ライブラリで作ったサンプルゲームを以下で公開しています。
 キーボード、マウス、スクリーンタッチすべてに対応しています。
 
-<image src="https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png"/>
+[![sample thumbnail](https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png)](https://yaneurao.github.io/yanesdk-for-brython/)
 
 - [サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)
 - [サンプルのソースコード](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample)

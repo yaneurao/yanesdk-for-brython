@@ -66,7 +66,7 @@ The sample program above loads yanesdk.py placed in the same folder in the src="
 
 ## Notes : When developing with VS Code, etc.
 
-When developing with VS Code, writing Python code directly on html may be troublesome because input completion is not available. For this reason, I have created a preprocessor and solved the problem with it. [preprocessor.py](preprocessor.py)
+When developing with VS Code, writing Python code directly on html may be troublesome because input completion is not available. For this reason, I have created a preprocessor and solved the problem with it. [preprocessor.py](yanesdk/preprocessor.py)
 
 Please refer to the beginning of the production video #1 of this library below to learn how to use this preprocessor (including the process of making it).
 

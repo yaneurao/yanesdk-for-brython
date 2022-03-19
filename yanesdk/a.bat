@@ -1,2 +1,2 @@
-python preprocessor.py template.html dev.html
+python preprocessor.py template.html game.html
 dev.html

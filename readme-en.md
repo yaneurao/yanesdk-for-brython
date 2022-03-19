@@ -20,7 +20,7 @@ It uses [Brython](https://brython.info/), a transpiler that converts Python code
 A sample game actually made with this library is available below.
 Keyboard, mouse, and screen touch are all supported.
 
-![sample thumbnail](https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png)
+<image src="https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png"/>
 
 - [Sample game demo page](https://yaneurao.github.io/yanesdk-for-brython/)
 - [Sample source code](sample)

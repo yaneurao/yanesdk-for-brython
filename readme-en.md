@@ -21,11 +21,11 @@ A sample game actually made with this library is available below.
 Keyboard, mouse, and screen touch are all supported.
 
 - [Sample game demo page](https://yaneurao.github.io/yanesdk-for-brython/)
-- [Sample source code](https://github.com/yaneurao/yanesdk-for-brython/sample)
+- [Sample source code](sample)
 
 # Usage
 
-Please download and use [yanesdk.py](https://github.com/yaneurao/yanesdk-for-brython/yanesdk/yanesdk.py) from this GitHub.
+Please download and use [yanesdk.py](yanesdk/yanesdk.py) from this GitHub.
 
 Load brython from cdn as follows, and execute brython() with onload of body. After that, you can write a program using it in Python by loading yanesdk.py.
 
@@ -66,7 +66,7 @@ The sample program above loads yanesdk.py placed in the same folder in the src="
 
 ## Notes : When developing with VS Code, etc.
 
-When developing with VS Code, writing Python code directly on html may be troublesome because input completion is not available. For this reason, I have created a preprocessor and solved the problem with it. [preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/yanesdk/preprocessor.py)
+When developing with VS Code, writing Python code directly on html may be troublesome because input completion is not available. For this reason, I have created a preprocessor and solved the problem with it. [preprocessor.py](preprocessor.py)
 
 Please refer to the beginning of the production video #1 of this library below to learn how to use this preprocessor (including the process of making it).
 

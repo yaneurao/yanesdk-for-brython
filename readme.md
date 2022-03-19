@@ -21,7 +21,7 @@
 キーボード、マウス、スクリーンタッチすべてに対応しています。
 
 - [サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)
-- [サンプルのソースコード](https://github.com/yaneurao/yanesdk-for-brython/sample/)
+- [サンプルのソースコード](https://github.com/yaneurao/yanesdk-for-brython/sample)
 
 # 使い方
 

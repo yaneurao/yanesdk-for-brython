@@ -9,12 +9,54 @@
 <h1>YaneuraoGameSDK for Brython sample page</h1><br/>
 <a href="https://github.com/yaneurao/yanesdk-for-brython">Project GitHub</a><br/><br/>
 
-<a href="ski"><img src="gif/ski.gif"/></a><br/>
-<a href="snake"><img src="gif/snake.gif"/></a><br/>
-<a href="rocket-spaceship/"><img src="gif/rocket.gif"/></a><br/>
-<a href="block-sushi"><img src="gif/sushi.gif"/></a><br/>
-<a href="lifegame"><img src="gif/lifegame.gif"/></a><br/>
-<a href="mandelbrot"><img src="gif/mandelbrot.gif"/></a><br/>
+<style type="text/css">
+div {
+
+}
+.based {
+    z-index : 1;
+    position : relative;
+    width:  660px;
+    height: 230px;
+}
+.level1 {
+    z-index: 2 ;
+    position: absolute;
+    width: 200px;
+    height 225px;
+    top: 0px;
+    left: 0px;
+}
+.level2 {
+    z-index: 2 ;
+    position: absolute;
+    width: 200px;
+    height 225px;
+    top: 0px;
+    left: 230px;
+}
+.level3 {
+    z-index: 2 ;
+    position: absolute;
+    width: 200px;
+    height 225px;
+    top: 0px;
+    left: 460px;
+}
+
+</style>
+
+<div class="based">
+    <a href="ski"   class="level1"><img src="gif/ski.gif"/></a><br/>
+    <a href="snake" class="level2"><img src="gif/snake.gif"/></a><br/>
+    <a href="rocket-spaceship/" class="level3"><img src="gif/rocket.gif"/></a><br/>
+</div>
+
+<div class="based">
+    <a href="block-sushi" class="level1"><img src="gif/sushi.gif"/></a><br/>
+    <a href="lifegame" class="level2"><img src="gif/lifegame.gif"/></a><br/>
+    <a href="mandelbrot" class="level3"><img src="gif/mandelbrot.gif"/></a><br/>
+</div>
 <a href="sakeru"><img src="gif/sakeru.gif"/></a><br/>
 
 </body>

@@ -753,16 +753,42 @@ class Canvas:
         self.ctx.strokeRect(p.x, p.y, s.x, s.y);        
 
     # Imageクラスの描画
-    def draw_image(self,image:Image,p:Vector2D):
+    # p       : 描画したい座標
+    # srcPos  : 転送元画像の転送したい矩形の左上の座標(Noneを指定すれば (0,0) を指定したのと同じ)
+    # srcSize : 転送元画像の転送したい矩形の大きさ    (Noneを指定すれば転送元の画像全体と同じ大きさ)
+    # dstSize : 描画先での大きさ                    (Noneを指定すれば転送元と同じ)
+    def draw_image(self,image:Image, p:Vector2D ,\
+         srcPos:Vector2D = Vector2D(0,0) , srcSize:Vector2D | None = None,
+         dstSize:Vector2D | None =None ):
+
         # 読み込みが完了していなければ(失敗しているなどでも) width == 0 なので
         # その状態なら、描画をskipする。
         if image.get_size().x == 0:
             return 
-        self.ctx.drawImage(image.image, p.x, p.y)
+        if not srcSize: # srcSizeが指定されていなければ、転送元画像のサイズそのまま
+            srcSize = image.get_size()
+        if not dstSize: # dstSizeが指定されていなければ、転送元のサイズと同じ(等倍)
+            dstSize = srcSize
+
+        self.ctx.drawImage(image.image, srcPos.x , srcPos.y, \
+            srcSize.x , srcSize.y , p.x, p.y , dstSize.x, dstSize.y )
 
     # Imageクラスを描画(指定した座標に画像の中央が来るように描画)
-    def draw_image_center(self, image:Image, p:Vector2D):
-        self.draw_image(image , p - image.get_size() // 2)
+    # p       : 描画したい座標
+    # srcPos  : 転送元画像の転送したい矩形の左上の座標(Noneを指定すれば (0,0) を指定したのと同じ)
+    # srcSize : 転送元画像の転送したい矩形の大きさ    (Noneを指定すれば転送元の画像全体と同じ大きさ)
+    # dstSize : 描画先での大きさ                    (Noneを指定すれば転送元と同じ)
+    def draw_image_center(self, image:Image, p:Vector2D, \
+         srcPos:Vector2D = Vector2D(0,0) , srcSize:Vector2D | None = None,
+         dstSize:Vector2D | None =None ):
+
+        if not srcSize: # srcSizeが指定されていなければ、転送元画像のサイズそのまま
+            srcSize = image.get_size()
+        if not dstSize: # dstSizeが指定されていなければ、転送元のサイズと同じ(等倍)
+            dstSize = srcSize
+
+        self.draw_image(image , p - dstSize // 2 ,\
+             srcPos = srcPos , srcSize = srcSize , dstSize = dstSize)
 
     # 文字をcanvasに描画
     # p : 文字列の左上の座標

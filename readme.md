@@ -60,15 +60,40 @@ canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
 
 本ライブラリに関して、ドキュメント類は用意していないのですが、ソースコードにコメントがたくさん書いてあるので、サンプルゲームのソースコードと照らし合わせれば使い方はわかるかと思います。
 
-## 注意点 : ローカル環境で開発する場合
+## FAQ
+
+### ローカル環境で開発すると上のサンプルコードがエラーになります。
 
 上のサンプルプログラムはsrc="yanesdk.py"の部分で同じフォルダに配置されたyanesdk.pyを読み込むのはAjaxを用いて読み込まれるため、ローカル環境だとセキュリティエラーになることがあります。(例えば、Chrome 97以降) その場合、外部ファイルから読み込むのではなく、htmlファイルに埋め込む必要があります。
 
-## 注意点 : VS Codeなどで開発する場合
+## VSCode(Visual Studio Code)で開発するときに入力補間が利かないです。
 
 VS Codeで開発する場合、html上に直接Pythonのコードを書いていくと入力補完が利かなくて面倒かも知れません。このため、私は、プリプロセッサを作成してそれで解決しています。[preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py)
 
-このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
+## preprocessor.pyの使い方を教えてください。
+
+以下のコマンドで、template.htmlを読み込み、そこにincludeとして書かれているPythonのプログラムを埋め込んでindex.htmlに出力できます。
+
+```a.bat
+python preprocessor.py template.html index.html
+```
+
+例えば、スキーゲームなら、[template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/template.html)は、#include "ski.py" と書いてあるところに [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski.py) を読み込み、ski.pyの冒頭で
+```python
+from yanesdk import * # done by preprocessor
+```
+と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的にindex.htmlに出力されます。
+
+// このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
+
+### VS Codeで開発する時に、yanesdk.pyに対してPylanceが警告をたくさん出します。
+
+importしているjavascriptとbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[javascript.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/javascript.py) と [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
+
+### このrepositoryの sampleフォルダと docsフォルダには何故同じファイルがあるのですか？
+
+sampleフォルダがもともとのソースコードです。これをpreprocessor.pyでyanesdk.pyを結合し、htmlファイルに埋め込んで最終的なhtmlにしています。この最終的なhtmlに、画像などの素材を加えたものが docsフォルダに配置されています。このdocsフォルダのhtmlが、[サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)から見えています。(これは、GitHubの静的ファイルのホスティング機能です。)
+
 
 # 本ライブラリのガイダンス動画
 

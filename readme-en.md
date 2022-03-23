@@ -81,9 +81,10 @@ python preprocessor.py template.html index.html
 
 For example, for a ski game, in its [template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/template.html), #include "ski.py" where it says [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/ski.py) is loaded, and then at the beginning of that ski.py
 
-````python
+```python
 from yanesdk import * # done by preprocessor
 ```
+
 so yanesdk.py placed in the same folder is read here, and finally [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski/index.html) is output.
 
 // Please refer to the beginning of the following video #1 of the production of this library for the usage of this preprocessor (including the process of making it).

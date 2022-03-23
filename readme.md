@@ -83,7 +83,7 @@ python preprocessor.py template.html index.html
 ```python
 from yanesdk import * # done by preprocessor
 ```
-と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的に [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski) が出力されます。
+と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的に [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski/index.html) が出力されます。
 
 // このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
 

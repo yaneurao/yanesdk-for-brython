@@ -61,16 +61,46 @@ canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
 We have not prepared any documentation for this library, but you should be able to understand it by looking at the source code of a sample game.
 
 
-## Note: If you develop in a local environment
+## FAQ
 
-The sample program above loads yanesdk.py placed in the same folder in the src="yanesdk.py" section, which is loaded using Ajax, which may cause a security error in a local environment. (For example, Chrome 97 or later) In that case, you need to embed it in an html file instead of loading it from an external file.
+### The sample code above causes an error when developed in a local environment.
 
+The sample program above may cause a security error in a local environment because it uses Ajax to load yanesdk.py placed in the same folder in the "src="yanesdk.py" section. (e.g., Chrome 97 or later) In that case, you need to embed it in an html file instead of loading it from an external file.
 
-## Notes : When developing with VS Code, etc.
+## Input interpolation does not work when developing with VSCode (Visual Studio Code).
 
-When developing with VS Code, writing Python code directly on html may be troublesome because input completion is not available. For this reason, I have created a preprocessor and solved the problem with it. [preprocessor.py](yanesdk/preprocessor.py)
+When developing with VS Code, writing Python code directly on html may be troublesome because input completion does not work. For this reason, I created a preprocessor ([preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py)) to solve this problem.
 
-Please refer to the beginning of the production video #1 of this library below to learn how to use this preprocessor (including the process of making it).
+## How do I use preprocessor.py?
+
+With the following command, you can load template.html, embed the Python program written as include in it, and output it to index.html.
+
+```a.bat
+python preprocessor.py template.html index.html
+```
+
+For example, for a ski game, in its [template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/template.html), #include "ski.py" where it says [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/ski.py) is loaded, and then at the beginning of that ski.py
+
+````python
+from yanesdk import * # done by preprocessor
+```
+so yanesdk.py placed in the same folder is read here, and finally [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski/index.html) is output.
+
+// Please refer to the beginning of the following video #1 of the production of this library for the usage of this preprocessor (including the process of making it).
+
+### When developing with VS Code, Pylance gives a lot of warnings for yanesdk.py.
+
+This is because the javascript and browser you are importing are libraries provided by Brython, and Pylance cannot access them. Instead, we use dummy [javascript.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/javascript.py) and If you place [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) in the same folder, the warning will not appear.
+
+### Why are there the same files in the sample and docs folders of this repository?
+
+The "sample" folder is the original source code. This is combined with yanesdk.py in preprocessor.py and embedded in an html file to make the final html. This final html, plus images and other materials, is placed in the "docs" folder. The html in this docs folder is visible from the [sample game demo page](https://yaneurao.github.io/yanesdk-for-brython/). (This is GitHub's static file hosting feature.)
+
+### Does the MIT License also apply to the sample source code and image material?
+
+- The MIT License also applies to the sample source code.
+- The image materials in the samples are resized from materials from [Irastoya](https://www.irasutoya.com/). Redistribution itself is not a problem, but the copyright of this image belongs to Irastoya.
+- The audio material in the sample is processed from free material. Redistribution itself is not a problem, but the copyright itself is not renounced in this case either.
 
 # Guidance video for this library
 

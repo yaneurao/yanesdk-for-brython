@@ -4,14 +4,13 @@
 
 #  required : Python version >= 3.10
 
-from dataclasses import dataclass
-from browser import document, html, window
-from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog
+from browser import document, window , DOMEvent # type:ignore
+from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog # type:ignore
 # PythonのMathライブラリを使うまでもないものは、JavaScriptのMathを使う。
-from javascript import Math
+from javascript import Math, Date
 
 from enum import IntEnum
-from typing import Callable, Generator, cast
+from typing import Callable, Generator, cast # type:ignore
 import traceback
 
 # ------------------------------------------------------------------------------
@@ -89,12 +88,14 @@ class Vector2D:
         return self._y
 
     # operator ==
-    def __eq__(self, other:"Vector2D")->bool:
-        return self._x == other._x and self._y == other._y
+    def __eq__(self, other:object)->bool:
+        other_ = cast(Vector2D,other)
+        return self._x == other_._x and self._y == other_._y
 
     # operator !=
-    def __ne__(self, other:"Vector2D")->bool:
-        return not (self._x == other._x and self._y == other._y)
+    def __ne__(self, other:object)->bool:
+        other_ = cast(Vector2D,other)
+        return not (self._x == other_._x and self._y == other_._y)
 
     # operator +
     # z : Vector2D
@@ -177,6 +178,7 @@ class KEY(IntEnum):
     DOWN  = 40
     SPACE = 32
     ENTER = 13
+    # あとで追加する
 
 # キー入力
 class KeyInput:
@@ -199,7 +201,7 @@ class KeyInput:
         self._event_removed = False
 
     # キーが押された時のイベント
-    def _key_push(self, e):
+    def _key_push(self, e:DOMEvent):
         self._keys[e.keyCode] = True
 
         # スクロールバーとか動いてしまうの嫌なので抑制
@@ -207,7 +209,7 @@ class KeyInput:
         e.stopPropagation()
 
     # キーを離した時のイベント
-    def _key_up(self, e):
+    def _key_up(self, e:DOMEvent):
         self._keys[e.keyCode] = False
         # スクロールバーとか動いてしまうの嫌なので抑制
         e.preventDefault()
@@ -239,9 +241,10 @@ class KeyInput:
 
 # タッチ情報
 class TouchInfo:
-    def __init__(self, pos:"Vector2D" , id:int):
+    # p : 
+    def __init__(self, p:"Vector2D" , id:int):
         # タッチされている座標
-        self.p = pos
+        self.p = p
         # そのid(タッチ(指)が移動した場合、同一idであることが保証されている)
         self.id = id
 
@@ -260,7 +263,7 @@ class TouchInput:
         # 前回の押されていたリスト
         self.last_touches:list[TouchInfo] =[]
 
-    def _touch_handler(self, e):
+    def _touch_handler(self, e:DOMEvent):
         self.touches:list[TouchInfo] = []
 
         touch_list = e.touches
@@ -334,26 +337,26 @@ class MouseInput:
         self.element.addEventListener("mouseup"     , self._mouse_updown)
         self.element.addEventListener("contextmenu" , self._contextmenu )
 
+        # マウスの現在の状態(次のframeまでに書き換わるので、そのあと書き換わって困るなら、clone()して用いること。)
         self.info      = MouseInfo(Vector2D(-99999,-99999), False,False,False)
 
+    # マウスの現在の状態(次のframeまでに書き換わるので、そのあと書き換わって困るなら、clone()して用いること。)
+    def get_info(self)->MouseInfo:
+        return self.info
+
     # マウスの移動ハンドラ
-    def _mouse_move(self, e):
+    def _mouse_move(self, e:DOMEvent):
         self.info.p = Vector2D(e.offsetX, e.offsetY)
 
     # マウスのボタン押し下げハンドラ
-    def _mouse_updown(self, e):
+    def _mouse_updown(self, e:DOMEvent):
         self.info.left_button   = bool(e.buttons & 1)
         self.info.right_button  = bool(e.buttons & 2)
         self.info.middle_button = bool(e.buttons & 4)
 
-    def _contextmenu(self, e):
+    def _contextmenu(self, e:DOMEvent):
         # コンテキストメニューの出現をキャンセル
         e.preventDefault();
-
-    # マウス状態を返す。
-    def get_info(self)->MouseInfo:
-        # このあと書き換えるのでcloneして返す。
-        return self.info.clone()
         
     # 明示的にeventをremoveする。
     # キー入力がこのクラスに食われてF5キー等が利かなくて困る時に用いる。
@@ -375,6 +378,7 @@ class VKEY(IntEnum):
     RIGHT = 3
     DOWN  = 4
     UP    = 5
+    # あとで追加するかも
 
 # 仮想キー入力
 # スペースキー、マウスクリック(右 or 左)、画面タッチ(スマホ)のいずれでもスペースキーが押されたとみなす、みたいな感じのことができる。
@@ -396,7 +400,7 @@ class VirtualKeyInput:
 
         # 前回と今回、それぞれのキーが押されていたかの情報。update()呼び出しごとに更新される。
         self._key_pressed_previous:list[bool] = []
-        self. key_pressed_current :list[bool] = [False]*8 # 最大 8key
+        self. key_pressed_current :list[bool] = [False]*16 # 最大 16key
 
         # update()のあと、(有効矩形内で)タッチされていた箇所。なければNone。configure_6keys_8directions_game()などを用いる時のみ有効。
         self.touch_pos:Vector2D | None = None
@@ -431,11 +435,11 @@ class VirtualKeyInput:
     #
     # r0 : タッチされた時に 仮想キー0としてみなす矩形領域(デフォルトでは400px × 400px のcanvasの左半分)
     # r1 : タッチされた時に 仮想キー1としてみなす矩形領域(デフォルトでは400px × 400px のcanvasの右半分)
-    def configure_4keys_2directions_game(self,r0:Rect=Rect(Vector2D(0,0),Vector2D(200,400)),r1:Rect=Rect(Vector2D(200,0),Vector2D(200,400))):
+    def configure_4keys_2directions_game(self, r0:Rect=Rect(Vector2D(0,0),Vector2D(200,400)), r1:Rect=Rect(Vector2D(200,0),Vector2D(200,400))):
 
         def handler():
             mouse = self.mouse_input.get_info()
-            self.key_pressed_current[VKEY.LEFT] = self.key_input.is_key_pressed(KEY.LEFT) or\
+            self.key_pressed_current[VKEY.LEFT ] = self.key_input.is_key_pressed(KEY.LEFT ) or\
                     mouse.left_button or \
                     (len(self.touch_input.get_info()) > 0 and self.touch_input.get_info()[0].p.is_in_rect(r0))
 
@@ -469,7 +473,7 @@ class VirtualKeyInput:
     # 仮想キー VKEY.ENTER として以下のように設定する。
     #   key   : Enter
     # 
-    # r              : マウスクリック、タッチの有効矩形。このなかだけ有効。
+    #  r      : マウスクリック、タッチの有効矩形。このなかだけ有効。
     # タッチされた箇所は、self.touch_posに反映される。
     def configure_6keys_4directions_game(self, r:Rect=Rect(Vector2D(0,0),Vector2D(200,200))):
         self.register_handler(lambda : self._6keys_handler(r, 45))
@@ -480,6 +484,7 @@ class VirtualKeyInput:
         self.register_handler(lambda : self._6keys_handler(r, 45))
 
     # ↑で使うhandler
+    # r              : マウスクリック、タッチの有効矩形。このなかだけ有効。
     def _6keys_handler(self, r:Rect, tolerance:float)->None:
         mouse = self.mouse_input.get_info()
 
@@ -554,7 +559,7 @@ class VirtualKeyInput:
 
     # 仮想キーが押されたかを返す。
     # key : 仮想キー番号(0から register_handler()を呼び出した回数 - 1 まで)
-    def is_key_pressed(self,key:int):
+    def is_key_pressed(self,key:VKEY):
         # 登録されているハンドラを呼び出すだけ。
         return self.key_pressed_current[key]
 
@@ -568,7 +573,7 @@ class VirtualKeyInput:
     #  keyinput.update()
     #  if keyinput.is_key_pushed(0):
     #    ...
-    def is_key_pushed(self,key:int):
+    def is_key_pushed(self,key:VKEY):
 
         if len(self._key_pressed_previous) != len(self.key_pressed_current):
             # update()を呼び忘れている。
@@ -672,7 +677,7 @@ class AudioLoader:
         for event_name in AudioLoader.event_names:
             document.removeEventListener(event_name, self._event_handler )
 
-    def _event_handler(self, evt):
+    def _event_handler(self, evt:DOMEvent):
         self._unlock_audios()
         self._remove_events()
 
@@ -704,6 +709,32 @@ class Image:
     # →　このタイミングだと画像読み込みが完了していないため、(0,0)になってしまう。
     def get_size(self)->"Vector2D":
         return Vector2D(self.image.naturalWidth , self.image.naturalHeight)
+
+    # 画像が読み込み完了しているかを返す。
+    def load_completed(self)->bool:
+        # 読み込みが完了しているなら画像の幅が得られているはず。
+        return self.image.naturalWidth != 0
+
+# 画像を管理してくれる。
+class ImageLoader:
+    # 使いたい画像ファイルの一覧を渡す。
+    def __init__(self , image_filenames:list[str]):
+
+        # ↓ここに読み込まれる。
+        self.images:list[Image] = []
+
+        for filename in image_filenames:
+            self.images.append(Image(filename))
+
+    # 読み込みが完了している画像の数を返す
+    def completed_num(self)->int:
+        # generator式で書くと短く書ける。
+        return sum((image.load_completed() for image in self.images))
+
+    # すべての画像の読み込みが完了しているのか。していればTrueが返る。
+    def load_completed(self)->bool:
+        return self.completed_num() == len(self.images)
+
 
 # 描画用canvas
 class Canvas:
@@ -749,22 +780,48 @@ class Canvas:
         self.ctx.strokeRect(p.x, p.y, s.x, s.y);        
 
     # Imageクラスの描画
-    def draw_image(self,image:Image,p:Vector2D):
+    # p       : 描画したい座標
+    # srcPos  : 転送元画像の転送したい矩形の左上の座標(Noneを指定すれば (0,0) を指定したのと同じ)
+    # srcSize : 転送元画像の転送したい矩形の大きさ    (Noneを指定すれば転送元の画像全体と同じ大きさ)
+    # dstSize : 描画先での大きさ                    (Noneを指定すれば転送元と同じ)
+    def draw_image(self,image:Image, p:Vector2D ,\
+         srcPos:Vector2D = Vector2D(0,0) , srcSize:Vector2D | None = None,
+         dstSize:Vector2D | None =None ):
+
         # 読み込みが完了していなければ(失敗しているなどでも) width == 0 なので
         # その状態なら、描画をskipする。
-        if image.get_size().x == 0:
+        if not image.load_completed():
             return 
-        self.ctx.drawImage(image.image, p.x, p.y)
+        if not srcSize: # srcSizeが指定されていなければ、転送元画像のサイズそのまま
+            srcSize = image.get_size()
+        if not dstSize: # dstSizeが指定されていなければ、転送元のサイズと同じ(等倍)
+            dstSize = srcSize
+
+        self.ctx.drawImage(image.image, srcPos.x , srcPos.y, \
+            srcSize.x , srcSize.y , p.x, p.y , dstSize.x, dstSize.y )
 
     # Imageクラスを描画(指定した座標に画像の中央が来るように描画)
-    def draw_image_center(self, image:Image, p:Vector2D):
-        self.draw_image(image , p - image.get_size() // 2)
+    # p       : 描画したい座標
+    # srcPos  : 転送元画像の転送したい矩形の左上の座標(Noneを指定すれば (0,0) を指定したのと同じ)
+    # srcSize : 転送元画像の転送したい矩形の大きさ    (Noneを指定すれば転送元の画像全体と同じ大きさ)
+    # dstSize : 描画先での大きさ                    (Noneを指定すれば転送元と同じ)
+    def draw_image_center(self, image:Image, p:Vector2D, \
+         srcPos:Vector2D = Vector2D(0,0) , srcSize:Vector2D | None = None,
+         dstSize:Vector2D | None =None ):
+
+        if not srcSize: # srcSizeが指定されていなければ、転送元画像のサイズそのまま
+            srcSize = image.get_size()
+        if not dstSize: # dstSizeが指定されていなければ、転送元のサイズと同じ(等倍)
+            dstSize = srcSize
+
+        self.draw_image(image , p - dstSize // 2 ,\
+             srcPos = srcPos , srcSize = srcSize , dstSize = dstSize)
 
     # 文字をcanvasに描画
     # p : 文字列の左上の座標
     # colorは make_color()を使ってRGBで指定することもできる。
     # ("red","blue"のような文字列と"#808080"のような16進数RGB文字列が使える)
-    def draw_text(self, text:str, p:Vector2D, font="32px serif",color="white"):
+    def draw_text(self, text:str, p:Vector2D, font:str="32px serif",color:str="white"):
         self.ctx.font = font
         self.ctx.fillStyle = color
         self.ctx.textBaseline = "top"
@@ -773,7 +830,7 @@ class Canvas:
     # 文字をcanvasに描画
     # draw_textの中央揃え版。
     # p : 文字列の中央にしたい座標。
-    def draw_text_center(self, text:str, p:Vector2D, font="32px serif",color="white"):
+    def draw_text_center(self, text:str, p:Vector2D, font:str="32px serif",color:str="white"):
         self.ctx.font = font
         self.ctx.fillStyle = color
         self.ctx.textBaseline = "top"
@@ -807,7 +864,7 @@ class Canvas:
 class GameTimer:
     def __init__(self , onDrawFunction:Callable[[],None] | None = None, fps:int=15):
 
-        self._game_loop    :Callable[[],None] | None = None
+        self._game_loop = None
 
         # 描画関数が設定されていれば、即座にstartさせる
         if onDrawFunction:
@@ -838,6 +895,27 @@ class GameTimer:
         if self._game_loop:
             window.clearInterval(self._game_loop)
             self._game_loop = None
+
+# 経過時間の計測用
+class ElapsedTimer:
+    def __init__(self):
+        self.reset()
+
+    # タイマーをリセットする。
+    # elapsed()を呼び出した時に、reset()からの経過時間が返る。
+    # コンストラクタでもreset()を呼び出しているので、コンストラクタ生成からの経過時間が知りたいなら、
+    # このreset()を呼び出す必要はない。
+    def reset(self):
+        # start_time : resetを呼び出してからの経過時間
+        self.start_time = self.now()
+
+    # 経過時間が返る。単位は[ms]
+    def elapsed(self)->int:
+        return self.now() - self.start_time
+
+    # 現在の時刻を返す。UCT 1970 年 1 月 1 日 0 時 0 分 0 秒からの経過時間。単位は[ms]。
+    def now(self)->int:
+        return Date.now()
 
 # ------------------------------------------------------------------------------
 #                              GameObject
@@ -923,13 +1001,6 @@ ImageFileList = [
     "sushi_kinmedai-s.png",
     "sushi_tamago-s.png"
     ]
-
-# 画像loader
-class ImageLoader:
-    def __init__(self):
-        self.images:list[Image] = []
-        for filename in ImageFileList:
-            self.images.append(Image(filename))
 
 # ゲームオブジェクトを表す定数
 class GameObjectType(IntEnum):
@@ -1127,6 +1198,8 @@ class Scene:
 class GameOpeningScene(Scene):
     def onDraw(self, app:"TheApp"):
         canvas = app.canvas
+        image_loader = app.image_loader
+
         # ゲーム説明の表示
         canvas.clear()
         canvas.draw_text_center("Instruction",Vector2D(200,130))
@@ -1134,9 +1207,13 @@ class GameOpeningScene(Scene):
         canvas.draw_text_center("Mouse Right and Left Button",Vector2D(200,240),"20px serif")
         canvas.draw_text_center(" or Touch Right/Left side is also available",Vector2D(200,270),"20px serif")
 
-        # 何かキーが押されたらゲーム開始
+        # 読み込みが完了している画像の数
+        canvas.draw_text_center(f"loading images .. {image_loader.completed_num()}/{len(image_loader.images)}",
+            Vector2D(200,340),"20px serif")
+
+        # 画像の読み込みが完了していて、かつ、何かキーが押されたらゲーム開始
         app.keyinput.update()
-        if app.keyinput.is_any_key_pressed():
+        if app.keyinput.is_any_key_pressed() and image_loader.load_completed():
             app.scene = GameMainScene()
 
 # ゲームオーバー時のScene
@@ -1219,7 +1296,7 @@ class TheApp(GameContext):
         self.canvas       = Canvas("canvas")
 
         # 画像loader
-        self.image_loader = ImageLoader()
+        self.image_loader = ImageLoader(ImageFileList)
 
         # 数学関連のツール
         self.math         = MathTools()
@@ -1232,7 +1309,4 @@ class TheApp(GameContext):
 
 # the singleton instance of The App
 TheApp()
-</script>
-<br/>
-<a href="https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/block-sushi/block-sushi.py">View Source Code</a>
-</body></html>
+</script></body></html>

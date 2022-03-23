@@ -4,14 +4,13 @@
 
 #  required : Python version >= 3.10
 
-from dataclasses import dataclass
-from browser import document, html, window
-from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog
+from browser import document, window , DOMEvent # type:ignore
+from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog # type:ignore
 # PythonのMathライブラリを使うまでもないものは、JavaScriptのMathを使う。
-from javascript import Math
+from javascript import Math, Date
 
 from enum import IntEnum
-from typing import Callable, Generator, cast
+from typing import Callable, Generator, cast # type:ignore
 import traceback
 
 # ------------------------------------------------------------------------------
@@ -89,12 +88,14 @@ class Vector2D:
         return self._y
 
     # operator ==
-    def __eq__(self, other:"Vector2D")->bool:
-        return self._x == other._x and self._y == other._y
+    def __eq__(self, other:object)->bool:
+        other_ = cast(Vector2D,other)
+        return self._x == other_._x and self._y == other_._y
 
     # operator !=
-    def __ne__(self, other:"Vector2D")->bool:
-        return not (self._x == other._x and self._y == other._y)
+    def __ne__(self, other:object)->bool:
+        other_ = cast(Vector2D,other)
+        return not (self._x == other_._x and self._y == other_._y)
 
     # operator +
     # z : Vector2D
@@ -200,7 +201,7 @@ class KeyInput:
         self._event_removed = False
 
     # キーが押された時のイベント
-    def _key_push(self, e):
+    def _key_push(self, e:DOMEvent):
         self._keys[e.keyCode] = True
 
         # スクロールバーとか動いてしまうの嫌なので抑制
@@ -208,7 +209,7 @@ class KeyInput:
         e.stopPropagation()
 
     # キーを離した時のイベント
-    def _key_up(self, e):
+    def _key_up(self, e:DOMEvent):
         self._keys[e.keyCode] = False
         # スクロールバーとか動いてしまうの嫌なので抑制
         e.preventDefault()
@@ -262,7 +263,7 @@ class TouchInput:
         # 前回の押されていたリスト
         self.last_touches:list[TouchInfo] =[]
 
-    def _touch_handler(self, e):
+    def _touch_handler(self, e:DOMEvent):
         self.touches:list[TouchInfo] = []
 
         touch_list = e.touches
@@ -344,16 +345,16 @@ class MouseInput:
         return self.info
 
     # マウスの移動ハンドラ
-    def _mouse_move(self, e):
+    def _mouse_move(self, e:DOMEvent):
         self.info.p = Vector2D(e.offsetX, e.offsetY)
 
     # マウスのボタン押し下げハンドラ
-    def _mouse_updown(self, e):
+    def _mouse_updown(self, e:DOMEvent):
         self.info.left_button   = bool(e.buttons & 1)
         self.info.right_button  = bool(e.buttons & 2)
         self.info.middle_button = bool(e.buttons & 4)
 
-    def _contextmenu(self, e):
+    def _contextmenu(self, e:DOMEvent):
         # コンテキストメニューの出現をキャンセル
         e.preventDefault();
         
@@ -676,7 +677,7 @@ class AudioLoader:
         for event_name in AudioLoader.event_names:
             document.removeEventListener(event_name, self._event_handler )
 
-    def _event_handler(self, evt):
+    def _event_handler(self, evt:DOMEvent):
         self._unlock_audios()
         self._remove_events()
 
@@ -708,6 +709,32 @@ class Image:
     # →　このタイミングだと画像読み込みが完了していないため、(0,0)になってしまう。
     def get_size(self)->"Vector2D":
         return Vector2D(self.image.naturalWidth , self.image.naturalHeight)
+
+    # 画像が読み込み完了しているかを返す。
+    def load_completed(self)->bool:
+        # 読み込みが完了しているなら画像の幅が得られているはず。
+        return self.image.naturalWidth != 0
+
+# 画像を管理してくれる。
+class ImageLoader:
+    # 使いたい画像ファイルの一覧を渡す。
+    def __init__(self , image_filenames:list[str]):
+
+        # ↓ここに読み込まれる。
+        self.images:list[Image] = []
+
+        for filename in image_filenames:
+            self.images.append(Image(filename))
+
+    # 読み込みが完了している画像の数を返す
+    def completed_num(self)->int:
+        # generator式で書くと短く書ける。
+        return sum((image.load_completed() for image in self.images))
+
+    # すべての画像の読み込みが完了しているのか。していればTrueが返る。
+    def load_completed(self)->bool:
+        return self.completed_num() == len(self.images)
+
 
 # 描画用canvas
 class Canvas:
@@ -763,7 +790,7 @@ class Canvas:
 
         # 読み込みが完了していなければ(失敗しているなどでも) width == 0 なので
         # その状態なら、描画をskipする。
-        if image.get_size().x == 0:
+        if not image.load_completed():
             return 
         if not srcSize: # srcSizeが指定されていなければ、転送元画像のサイズそのまま
             srcSize = image.get_size()
@@ -794,7 +821,7 @@ class Canvas:
     # p : 文字列の左上の座標
     # colorは make_color()を使ってRGBで指定することもできる。
     # ("red","blue"のような文字列と"#808080"のような16進数RGB文字列が使える)
-    def draw_text(self, text:str, p:Vector2D, font="32px serif",color="white"):
+    def draw_text(self, text:str, p:Vector2D, font:str="32px serif",color:str="white"):
         self.ctx.font = font
         self.ctx.fillStyle = color
         self.ctx.textBaseline = "top"
@@ -803,7 +830,7 @@ class Canvas:
     # 文字をcanvasに描画
     # draw_textの中央揃え版。
     # p : 文字列の中央にしたい座標。
-    def draw_text_center(self, text:str, p:Vector2D, font="32px serif",color="white"):
+    def draw_text_center(self, text:str, p:Vector2D, font:str="32px serif",color:str="white"):
         self.ctx.font = font
         self.ctx.fillStyle = color
         self.ctx.textBaseline = "top"
@@ -837,7 +864,7 @@ class Canvas:
 class GameTimer:
     def __init__(self , onDrawFunction:Callable[[],None] | None = None, fps:int=15):
 
-        self._game_loop    :Callable[[],None] | None = None
+        self._game_loop = None
 
         # 描画関数が設定されていれば、即座にstartさせる
         if onDrawFunction:
@@ -868,6 +895,27 @@ class GameTimer:
         if self._game_loop:
             window.clearInterval(self._game_loop)
             self._game_loop = None
+
+# 経過時間の計測用
+class ElapsedTimer:
+    def __init__(self):
+        self.reset()
+
+    # タイマーをリセットする。
+    # elapsed()を呼び出した時に、reset()からの経過時間が返る。
+    # コンストラクタでもreset()を呼び出しているので、コンストラクタ生成からの経過時間が知りたいなら、
+    # このreset()を呼び出す必要はない。
+    def reset(self):
+        # start_time : resetを呼び出してからの経過時間
+        self.start_time = self.now()
+
+    # 経過時間が返る。単位は[ms]
+    def elapsed(self)->int:
+        return self.now() - self.start_time
+
+    # 現在の時刻を返す。UCT 1970 年 1 月 1 日 0 時 0 分 0 秒からの経過時間。単位は[ms]。
+    def now(self)->int:
+        return Date.now()
 
 # ------------------------------------------------------------------------------
 #                              GameObject

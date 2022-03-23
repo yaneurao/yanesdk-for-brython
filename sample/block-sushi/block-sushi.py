@@ -22,13 +22,6 @@ ImageFileList = [
     "sushi_tamago-s.png"
     ]
 
-# 画像loader
-class ImageLoader:
-    def __init__(self):
-        self.images:list[Image] = []
-        for filename in ImageFileList:
-            self.images.append(Image(filename))
-
 # ゲームオブジェクトを表す定数
 class GameObjectType(IntEnum):
     SUSHI           = 0 # 寿司
@@ -225,6 +218,8 @@ class Scene:
 class GameOpeningScene(Scene):
     def onDraw(self, app:"TheApp"):
         canvas = app.canvas
+        image_loader = app.image_loader
+
         # ゲーム説明の表示
         canvas.clear()
         canvas.draw_text_center("Instruction",Vector2D(200,130))
@@ -232,9 +227,13 @@ class GameOpeningScene(Scene):
         canvas.draw_text_center("Mouse Right and Left Button",Vector2D(200,240),"20px serif")
         canvas.draw_text_center(" or Touch Right/Left side is also available",Vector2D(200,270),"20px serif")
 
-        # 何かキーが押されたらゲーム開始
+        # 読み込みが完了している画像の数
+        canvas.draw_text_center(f"loading images .. {image_loader.completed_num()}/{len(image_loader.images)}",
+            Vector2D(200,340),"20px serif")
+
+        # 画像の読み込みが完了していて、かつ、何かキーが押されたらゲーム開始
         app.keyinput.update()
-        if app.keyinput.is_any_key_pressed():
+        if app.keyinput.is_any_key_pressed() and image_loader.load_completed():
             app.scene = GameMainScene()
 
 # ゲームオーバー時のScene
@@ -317,7 +316,7 @@ class TheApp(GameContext):
         self.canvas       = Canvas("canvas")
 
         # 画像loader
-        self.image_loader = ImageLoader()
+        self.image_loader = ImageLoader(ImageFileList)
 
         # 数学関連のツール
         self.math         = MathTools()

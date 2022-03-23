@@ -60,9 +60,9 @@ canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
 
 本ライブラリに関して、ドキュメント類は用意していないのですが、ソースコードにコメントがたくさん書いてあるので、サンプルゲームのソースコードと照らし合わせれば使い方はわかるかと思います。
 
-## FAQ
+# FAQ
 
-### ローカル環境で開発すると上のサンプルコードがエラーになります。
+## ローカル環境で開発すると上のサンプルコードがエラーになります。
 
 上のサンプルプログラムはsrc="yanesdk.py"の部分で同じフォルダに配置されたyanesdk.pyを読み込むのはAjaxを用いて読み込まれるため、ローカル環境だとセキュリティエラーになることがあります。(例えば、Chrome 97以降) その場合、外部ファイルから読み込むのではなく、htmlファイルに埋め込む必要があります。
 
@@ -88,15 +88,15 @@ from yanesdk import * # done by preprocessor
 
 // このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
 
-### VS Codeで開発する時に、yanesdk.pyに対してPylanceが警告をたくさん出します。
+## VS Codeで開発する時に、yanesdk.pyに対してPylanceが警告をたくさん出します。
 
 importしているjavascriptとbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[javascript.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/javascript.py) と [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
 
-### このrepositoryの sampleフォルダと docsフォルダには何故同じファイルがあるのですか？
+## このrepositoryの sampleフォルダと docsフォルダには何故同じファイルがあるのですか？
 
 sampleフォルダがもともとのソースコードです。これをpreprocessor.pyでyanesdk.pyを結合し、htmlファイルに埋め込んで最終的なhtmlにしています。この最終的なhtmlに、画像などの素材を加えたものが docsフォルダに配置されています。このdocsフォルダのhtmlが、[サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)から見えています。(これは、GitHubの静的ファイルのホスティング機能です。)
 
-### サンプルのソースコードや画像素材もMIT Licenseが適用されますか？
+## サンプルのソースコードや画像素材もMIT Licenseが適用されますか？
 
 - サンプルのソースコードにもMIT Licenseが適用されます。
 - サンプルの画像素材は、[いらすとや](https://www.irasutoya.com/)の素材をリサイズしています。再配布自体は問題ないですが、この画像の著作権は、いらすとやにあります。

@@ -68,7 +68,7 @@ canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
 
 ## VSCode(Visual Studio Code)で開発するときに入力補間が利かないです。
 
-VS Codeで開発する場合、html上に直接Pythonのコードを書いていくと入力補完が利かなくて面倒かも知れません。このため、私は、プリプロセッサを作成してそれで解決しています。[preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py)
+VS Codeで開発する場合、html上に直接Pythonのコードを書いていくと入力補完が利かなくて面倒かも知れません。このため、私は、プリプロセッサ([preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py))を作成してそれで解決しています。
 
 ## preprocessor.pyの使い方を教えてください。
 
@@ -78,11 +78,12 @@ VS Codeで開発する場合、html上に直接Pythonのコードを書いてい
 python preprocessor.py template.html index.html
 ```
 
-例えば、スキーゲームなら、[template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/template.html)は、#include "ski.py" と書いてあるところに [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski.py) を読み込み、ski.pyの冒頭で
+例えば、スキーゲームなら、その[template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/template.html)で、#include "ski.py" と書いてあるところに [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/ski.py) を読み込み、さらに、そのski.pyの冒頭で
+
 ```python
 from yanesdk import * # done by preprocessor
 ```
-と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的にindex.htmlに出力されます。
+と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的に [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski) が出力されます。
 
 // このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
 
@@ -94,6 +95,11 @@ importしているjavascriptとbrowserがBrythonで用意されているライ�
 
 sampleフォルダがもともとのソースコードです。これをpreprocessor.pyでyanesdk.pyを結合し、htmlファイルに埋め込んで最終的なhtmlにしています。この最終的なhtmlに、画像などの素材を加えたものが docsフォルダに配置されています。このdocsフォルダのhtmlが、[サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)から見えています。(これは、GitHubの静的ファイルのホスティング機能です。)
 
+### サンプルのソースコードや画像素材もMIT Licenseが適用されますか？
+
+- サンプルのソースコードにもMIT Licenseが適用されます。
+- サンプルの画像素材は、[いらすとや](https://www.irasutoya.com/)の素材をリサイズしています。再配布自体は問題ないですが、この画像の著作権は、いらすとやにあります。
+- サンプルの音声素材は、フリー素材を加工したもので、再配布自体は問題ないですが、これも著作権自体は放棄していません。
 
 # 本ライブラリのガイダンス動画
 

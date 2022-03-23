@@ -6,12 +6,13 @@
 
 from browser import document, window , DOMEvent # type:ignore
 from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog # type:ignore
-# PythonのMathライブラリを使うまでもないものは、JavaScriptのMathを使う。
-from javascript import Math, Date
 
 from enum import IntEnum
 from typing import Callable, Generator, cast # type:ignore
 import traceback
+import math
+import random
+from timeit import default_timer as timer
 
 # ------------------------------------------------------------------------------
 #                              数学関係のツール
@@ -21,7 +22,7 @@ import traceback
 class MathTools:
 
     # 円周率(定数)
-    PI:float = Math.PI
+    PI:float = math.pi
 
     # xを区間[min,max]の範囲に収める
     @staticmethod
@@ -37,34 +38,34 @@ class MathTools:
     @staticmethod
     def randint(min:int,max:int | None=None)->int:
         if max:
-            return Math.floor(Math.random() * (max - min)) + min
-        return Math.floor(Math.random() * min)
+            return math.floor(random.random() * (max - min)) + min
+        return math.floor(random.random() * min)
 
     # sin関数。単位は角度(360を指定すると2π[rad])
     @staticmethod
     def sin_deg(x:int | float)->float:
-        return Math.sin(Math.PI*2 * x / 360)
+        return math.sin(math.pi*2 * x / 360)
 
     # sin関数。単位はrad。
     @staticmethod
     def sin(x:float)->float:
-        return Math.sin(x)
+        return math.sin(x)
 
     # cos関数。単位は角度(360を指定すると2π[rad])
     @staticmethod
     def cos_deg(x:int | float)->float:
-        return Math.cos(Math.PI*2 * x / 360)
+        return math.cos(math.pi*2 * x / 360)
 
     # cos関数。単位はrad。
     @staticmethod
     def cos(x:int | float)->float:
-        return Math.cos(x)
+        return math.cos(x)
 
     # ベクトルの方向を0-360で返す。(右方向が0、上方向(スクリーン座標での上なのでVector2D(0,-1)が上方向であることに注意) が90、..)
     @staticmethod
     def atan_deg(v:"Vector2D")->float:
         # JavaScriptのatan2は 区間[-π,+π](-180°～180°)の範囲で返ってくるので360足して 360で割ったあまりを考えることで補整。
-        return (360 - Math.atan2(v.y, v.x) * 180 / Math.PI) % 360
+        return (360 - math.atan2(v.y, v.x) * 180 / math.pi) % 360
 
 # ------------------------------------------------------------------------------
 #                              図形関連
@@ -137,7 +138,7 @@ class Vector2D:
     # 単位ベクトルを返す。
     # kが指定されていれば、そのk倍したものを返す。
     def unit(self,k:float = 1.0)->"Vector2D":
-        r = Math.sqrt(self.x**2 + self.y**2)
+        r = math.sqrt(self.x**2 + self.y**2)
         # ゼロ除算回避
         if r == 0.0:
             return Vector2D(0,0)
@@ -150,7 +151,7 @@ class Vector2D:
 
     # ベクトルのノルム(大きさ)を返す。
     def norm(self)->float:
-        return Math.sqrt(self.x**2 + self.y**2)
+        return math.sqrt(self.x**2 + self.y**2)
 
 # 矩形領域
 class Rect:
@@ -909,13 +910,13 @@ class ElapsedTimer:
         # start_time : resetを呼び出してからの経過時間
         self.start_time = self.now()
 
-    # 経過時間が返る。単位は[ms]
-    def elapsed(self)->int:
+    # 経過時間が返る。単位は秒。float型なので0.5秒なら0.5。
+    def elapsed(self)->float:
         return self.now() - self.start_time
 
-    # 現在の時刻を返す。UCT 1970 年 1 月 1 日 0 時 0 分 0 秒からの経過時間。単位は[ms]。
-    def now(self)->int:
-        return Date.now()
+    # 現在の時刻を返す。何かからの経過時間。単位は秒。
+    def now(self)->float:
+        return timer() # timeit
 
 # ------------------------------------------------------------------------------
 #                              GameObject

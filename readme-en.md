@@ -91,7 +91,7 @@ so yanesdk.py placed in the same folder is read here, and finally [index.html](h
 
 ## When developing with VS Code, Pylance gives a lot of warnings for yanesdk.py.
 
-This is because the javascript and browser you are importing are libraries provided by Brython, and Pylance cannot access them. Instead, we use dummy [javascript.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/javascript.py) and If you place [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) in the same folder, the warning will not appear.
+This is because the browser you are importing is library provided by Brython, and Pylance cannot access them. Instead, if you place dummy [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) in the same folder, the warning will not appear.
 
 ## Why are there the same files in the sample and docs folders of this repository?
 

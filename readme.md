@@ -90,7 +90,7 @@ from yanesdk import * # done by preprocessor
 
 ## VS Codeで開発する時に、yanesdk.pyに対してPylanceが警告をたくさん出します。
 
-importしているjavascriptとbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[javascript.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/javascript.py) と [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
+importしているbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
 
 ## このrepositoryの sampleフォルダと docsフォルダには何故同じファイルがあるのですか？
 

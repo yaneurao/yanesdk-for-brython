@@ -269,6 +269,7 @@ class ScoreUpdater(MyGameObject):
             app.canvas.draw_text_center("Game Start",Vector2D(400,220),font = "60px serif",color = "blue")
 
 # ゲームで使用する画像
+# 画像が多いならImageLoaderを使うべき。(画像の読み込み完了を待機できるので)
 class Images:
     def __init__(self):
 

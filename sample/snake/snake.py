@@ -5,7 +5,7 @@
 # ==============================================================================
 
 # 画像読み込み用
-class ImageLoader:
+class MyImageLoader:
     def __init__(self):
         # ゲームレバーの画像
         self.lever = Image("lever-s.png")
@@ -168,7 +168,7 @@ class TheApp:
         self.canvas      = Canvas()
 
         # 画像
-        self.images      = ImageLoader()
+        self.images      = MyImageLoader()
 
         # 数学関連のツール
         self.math        = MathTools()

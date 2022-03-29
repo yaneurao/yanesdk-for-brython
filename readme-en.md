@@ -29,7 +29,7 @@ Keyboard, mouse, and screen touch are all supported.
 
 Please download and use [yanesdk.py](yanesdk/yanesdk.py) from this GitHub.
 
-Load brython from cdn as follows, and execute brython() with onload of body. After that, you can write a program using it in Python by loading yanesdk.py.
+You can load brython from cdn as follows, and execute brython() in onload of body. you can load another file written in python called sample.py and import yanesdk at the beginning of it.
 
 ```sample.html
 <html>
@@ -46,16 +46,18 @@ Load brython from cdn as follows, and execute brython() with onload of body. Aft
 <body onload="brython()">
 
 <canvas id="canvas" width="800" height="400" style="cursor:none"></canvas>
+<script type="text/python" src="sample.py">
+</body>
+</html>
+```
 
-<script type="text/python" src="yanesdk.py">
-<script type="text/python">
+```sample.py
+# sample.py
+from yanesdk import *
 
 Canvas canvas
 canvas.clear()
 canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
-
-</body>
-</html>
 ```
 
 We have not prepared any documentation for this library, but you should be able to understand it by looking at the source code of a sample game.
@@ -63,39 +65,19 @@ We have not prepared any documentation for this library, but you should be able 
 
 # FAQ
 
-## The sample code above causes an error when developed in a local environment.
+## The sample code above will cause an error when developed in a local environment.
 
-The sample program above may cause a security error in a local environment because it uses Ajax to load yanesdk.py placed in the same folder in the "src="yanesdk.py" section. (e.g., Chrome 97 or later) In that case, you need to embed it in an html file instead of loading it from an external file.
+The sample program above specifies sample.py as an external script, but since this part is loaded using Ajax, it may cause a security error in a local environment. (For example, Chrome 97 or later) In that case, you need to embed it in the html file instead of loading it from an external file.
 
-## Input interpolation does not work when developing with VSCode (Visual Studio Code).
+If you are using VSCode, it is recommended to set up a local server with the Live Server extension.
 
-When developing with VS Code, writing Python code directly on html may be troublesome because input completion does not work. For this reason, I created a preprocessor ([preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py)) to solve this problem.
+## Input completion does not work when developing in VSCode (Visual Studio Code).
 
-## How do I use preprocessor.py?
+When developing with VS Code, writing Python code directly on html is troublesome because input completion does not work.
 
-With the following command, you can load template.html, embed the Python program written as include in it, and output it to index.html.
+## When developing in VS Code, Pylance gives a lot of warnings for yanesdk.py.
 
-```a.bat
-python preprocessor.py template.html index.html
-```
-
-For example, for a ski game, in its [template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/template.html), #include "ski.py" where it says [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/ski.py) is loaded, and then at the beginning of that ski.py
-
-```python
-from yanesdk import * # done by preprocessor
-```
-
-so yanesdk.py placed in the same folder is read here, and finally [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski/index.html) is output.
-
-// Please refer to the beginning of the following video #1 of the production of this library for the usage of this preprocessor (including the process of making it).
-
-## When developing with VS Code, Pylance gives a lot of warnings for yanesdk.py.
-
-This is because the browser you are importing is library provided by Brython, and Pylance cannot access them. Instead, if you place dummy [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) in the same folder, the warning will not appear.
-
-## Why are there the same files in the sample and docs folders of this repository?
-
-The "sample" folder is the original source code. This is combined with yanesdk.py in preprocessor.py and embedded in an html file to make the final html. This final html, plus images and other materials, is placed in the "docs" folder. The html in this docs folder is visible from the [sample game demo page](https://yaneurao.github.io/yanesdk-for-brython/). (This is GitHub's static file hosting feature.)
+This is because the browser you are importing from yanesdk.py is a library provided by Brython and Pylance cannot access it. If you place a dummy [browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) in the same folder instead, the warnings will not appear.
 
 ## Does the MIT License also apply to the sample source code and image material?
 

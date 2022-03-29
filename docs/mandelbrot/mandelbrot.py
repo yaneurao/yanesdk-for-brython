@@ -1,4 +1,4 @@
-﻿from yanesdk import * # done by preprocessor
+﻿from yanesdk import *
 
 # ==============================================================================
 #                         Mandelbrot set

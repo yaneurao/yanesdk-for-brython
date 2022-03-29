@@ -29,7 +29,7 @@
 
 本GitHubの [yanesdk.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/yanesdk.py)をダウンロードしてお使いください。
 
-以下のようにcdnからbrythonを読み込むようにして、bodyのonloadでbrython()を実行します。あとは、yanesdk.pyを読み込むようにすれば、これを利用したプログラムがPythonで書けます。
+以下のようにcdnからbrythonを読み込むようにして、bodyのonloadでbrython()を実行します。sample.pyというPythonで書かれた別のファイルを読み込み、その先頭でyanesdkをimportすれば良いです。
 
 ```sample.html
 <html>
@@ -46,16 +46,18 @@
 <body onload="brython()">
 
 <canvas id="canvas" width="800" height="400" style="cursor:none"></canvas>
+<script type="text/python" src="sample.py">
+</body>
+</html>
+```
 
-<script type="text/python" src="yanesdk.py">
-<script type="text/python">
+```sample.py
+# sample.py
+from yanesdk import *
 
 Canvas canvas
 canvas.clear()
 canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
-
-</body>
-</html>
 ```
 
 本ライブラリに関して、ドキュメント類は用意していないのですが、ソースコードにコメントがたくさん書いてあるので、サンプルゲームのソースコードと照らし合わせれば使い方はわかるかと思います。
@@ -64,37 +66,17 @@ canvas.draw_rect(Vector2D(100,100),Vector2D(200,200),"white")
 
 ## ローカル環境で開発すると上のサンプルコードがエラーになります。
 
-上のサンプルプログラムはsrc="yanesdk.py"の部分で同じフォルダに配置されたyanesdk.pyを読み込むのはAjaxを用いて読み込まれるため、ローカル環境だとセキュリティエラーになることがあります。(例えば、Chrome 97以降) その場合、外部ファイルから読み込むのではなく、htmlファイルに埋め込む必要があります。
+上のサンプルプログラムは sample.pyを外部のスクリプトとして指定していますが、この部分はAjaxを用いて読み込まれるため、ローカル環境だとセキュリティエラーになることがあります。(例えば、Chrome 97以降) その場合、外部ファイルから読み込むのではなく、htmlファイルに埋め込む必要があります。
 
-## VSCode(Visual Studio Code)で開発するときに入力補間が利かないです。
+VSCodeを用いているなら、Live Serverという拡張でローカルサーバーを立てて使うことをお勧めします。
 
-VS Codeで開発する場合、html上に直接Pythonのコードを書いていくと入力補完が利かなくて面倒かも知れません。このため、私は、プリプロセッサ([preprocessor.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/preprocessor.py))を作成してそれで解決しています。
+## VSCode(Visual Studio Code)で開発するときに入力補完が利かないです。
 
-## preprocessor.pyの使い方を教えてください。
-
-以下のコマンドで、template.htmlを読み込み、そこにincludeとして書かれているPythonのプログラムを埋め込んでindex.htmlに出力できます。
-
-```a.bat
-python preprocessor.py template.html index.html
-```
-
-例えば、スキーゲームなら、その[template.html](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/template.html)で、#include "ski.py" と書いてあるところに [ski.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample/ski/ski.py) を読み込み、さらに、そのski.pyの冒頭で
-
-```python
-from yanesdk import * # done by preprocessor
-```
-
-と書いてあるので、ここで同じフォルダに配置されたyanesdk.pyが読み込まれ、最終的に [index.html](https://github.com/yaneurao/yanesdk-for-brython/tree/main/docs/ski/index.html) が出力されます。
-
-// このプリプロセッサの使い方(作る過程も含め)は、以下の本ライブラリの製作動画#1の冒頭にありますので、参考にしてみてください。
+VS Codeで開発する場合、html上に直接Pythonのコードを書いていくと入力補完が利かなくて面倒です。Pythonのコードはファイルを分けて書くことをお勧めします。
 
 ## VS Codeで開発する時に、yanesdk.pyに対してPylanceが警告をたくさん出します。
 
-importしているbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
-
-## このrepositoryの sampleフォルダと docsフォルダには何故同じファイルがあるのですか？
-
-sampleフォルダがもともとのソースコードです。これをpreprocessor.pyでyanesdk.pyを結合し、htmlファイルに埋め込んで最終的なhtmlにしています。この最終的なhtmlに、画像などの素材を加えたものが docsフォルダに配置されています。このdocsフォルダのhtmlが、[サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)から見えています。(これは、GitHubの静的ファイルのホスティング機能です。)
+yanesdk.pyからimportしているbrowserがBrythonで用意されているライブラリであるため、Pylanceはそれにアクセスできないためです。代わりにダミーの[browser.py](https://github.com/yaneurao/yanesdk-for-brython/blob/main/yanesdk/browser.py) を同じフォルダに配置すると警告は出なくなります。
 
 ## サンプルのソースコードや画像素材もMIT Licenseが適用されますか？
 

@@ -23,7 +23,7 @@
 [![sample thumbnail](https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png)](https://yaneurao.github.io/yanesdk-for-brython/)
 
 - [サンプルゲーム デモページ](https://yaneurao.github.io/yanesdk-for-brython/)
-- [サンプルのソースコード](https://github.com/yaneurao/yanesdk-for-brython/blob/main/sample)
+- [サンプルのソースコード](https://github.com/yaneurao/yanesdk-for-brython/blob/main/docs/)
 
 # 使い方
 

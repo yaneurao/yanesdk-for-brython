@@ -23,7 +23,7 @@ Keyboard, mouse, and screen touch are all supported.
 [![sample thumbnail](https://yaneurao.github.io/yanesdk-for-brython/gif/sample-thumb.png)](https://yaneurao.github.io/yanesdk-for-brython/)
 
 - [Sample game demo page](https://yaneurao.github.io/yanesdk-for-brython/)
-- [Sample source code](sample)
+- [Sample source code](https://github.com/yaneurao/yanesdk-for-brython/blob/main/docs/)
 
 # Usage
 

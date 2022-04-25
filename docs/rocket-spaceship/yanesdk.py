@@ -166,6 +166,25 @@ class Rect:
     def __str__(self):
         return f"p={self.p}, s={self.s}"
 
+# ------------------------------------------------------------------------------
+#                              文字列操作など
+# ------------------------------------------------------------------------------
+
+class StrUtil:
+    # 左からn文字切り出す
+    @staticmethod
+    def left(s:str,n:int):
+        return s[:n]
+
+    # 右からn文字切り出す
+    @staticmethod
+    def right(s:str,n:int):
+        return s[-n:]
+
+    # 真ん中n文字目からm文字切り出す
+    @staticmethod
+    def mid(s:str, n:int, m:int):
+        return s[n:n+m]
 
 # ------------------------------------------------------------------------------
 #                              キー入力

@@ -303,7 +303,7 @@ class GameOpeningScene(Scene):
         canvas.clear()
         canvas.draw_text_center("Instruction",Vector2D(400,130))
         canvas.draw_text_center("Cursor Key to move",Vector2D(400,200),"28px serif")
-        canvas.draw_text_center("Mouse Click or Tourch is also available",Vector2D(400,230),"20px serif")
+        canvas.draw_text_center("Mouse Click or Touch is also available",Vector2D(400,230),"20px serif")
 
         # 何かキーが押されたらゲーム開始
         app.keyinput.update()
